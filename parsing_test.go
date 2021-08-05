@@ -19,6 +19,8 @@ import (
 )
 
 type Container struct {
+	err error
+
 	configuration    config.Configuration
 	entityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
 	useCase          *usecase.FindEntity

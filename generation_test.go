@@ -92,11 +92,17 @@ func NewContainer(injectors ...Injector) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) ServiceName() *domain.Service {
+func (c *Container) ServiceName() (*domain.Service, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.c.ServiceName()
+	s := c.c.ServiceName()
+	err := c.c.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return s, err
 }
 
 func (c *Container) Close() {

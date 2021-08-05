@@ -87,6 +87,9 @@ func createServiceDefinitions(container *ast.StructType) ([]ServiceDefinition, e
 		if err != nil {
 			return nil, err
 		}
+		if fieldType.Name == "error" {
+			continue
+		}
 
 		service := newServiceDefinition(
 			parseFieldName(field),
@@ -178,6 +181,9 @@ func parseTypeDefinition(expr ast.Expr) (TypeDefinition, error) {
 		definition.IsPointer = true
 
 		return definition, nil
+
+	case *ast.Ident:
+		return TypeDefinition{Name: t.Name}, nil
 	}
 
 	return TypeDefinition{}, errors.Wrap(ErrUnexpectedType, "failed to parse type")
