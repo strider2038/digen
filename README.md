@@ -9,7 +9,7 @@ Project is under development
   * [x] generate requirements
 * [x] use cobra/viper
 * [x] `HandleError` method
-* [ ] generate package docs
+* [x] generate package docs
 * [ ] apply gofmt
 * [ ] definitions generator
 * [ ] generate external services

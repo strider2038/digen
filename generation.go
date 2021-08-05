@@ -24,7 +24,11 @@ type File struct {
 }
 
 func (f *File) WriteTo(dir string) error {
-	err := os.WriteFile(dir+"/"+f.Name, f.Content, 0644)
+	var content bytes.Buffer
+	headingTemplate.Execute(&content, nil)
+	content.Write(f.Content)
+
+	err := os.WriteFile(dir+"/"+f.Name, content.Bytes(), 0644)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to write %s", f.Name)
 	}

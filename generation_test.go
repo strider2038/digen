@@ -266,7 +266,7 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, "container_get.go", files[0].Name)
 				assert.Equal(t, basicContainerGetFile, string(files[0].Content))
 				assert.Equal(t, digen.DefinitionsPackage, files[2].Package)
-				assert.Equal(t, "definitions/container.go", files[2].Name)
+				assert.Equal(t, "container.go", files[2].Name)
 				assert.Equal(t, basicDefinitionsContainerFile, string(files[2].Content))
 				assert.Equal(t, digen.PublicPackage, files[3].Package)
 				assert.Equal(t, "container.go", files[3].Name)
