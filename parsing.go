@@ -52,6 +52,7 @@ func ParseAST(file *ast.File) (*ContainerDefinition, error) {
 	}
 
 	definition := &ContainerDefinition{
+		Name:     "Container",
 		Package:  file.Name.Name,
 		Imports:  imports,
 		Services: services,

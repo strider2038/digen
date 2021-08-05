@@ -3,6 +3,7 @@ package digen
 import "strings"
 
 type ContainerDefinition struct {
+	Name     string
 	Package  string
 	Imports  []ImportDefinition
 	Services []ServiceDefinition
@@ -30,7 +31,7 @@ type ServiceDefinition struct {
 	HasCloser  bool // "close" tag - generate closer method call
 	IsRequired bool // "required" tag - will generate argument for public container constructor
 	IsPublic   bool // "public" tag - will generate getter for public container
-	IsExternal bool // "external" tag - no definition, panic if empty
+	IsExternal bool // "external" tag - no definition, panic if empty, force public setter
 }
 
 func (s ServiceDefinition) Title() string {

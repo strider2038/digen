@@ -24,8 +24,10 @@ func main() {
 
 	fmt.Println("Container", filename, "successfully parsed")
 
+	params := digen.DefaultGenerationParameters()
+
 	path := filepath.Dir(filename)
-	_, err = digen.Generate(container, digen.GenerationParameters{})
+	_, err = digen.Generate(container, params)
 	if err != nil {
 		log.Fatalln(err)
 	}
