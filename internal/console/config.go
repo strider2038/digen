@@ -3,14 +3,11 @@ package console
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/strider2038/digen"
 )
 
 type Configuration struct {
 	WorkDir           string
 	ContainerFilename string
-
-	PackageDirs [digen.DefinitionsPackage + 1]string
 }
 
 func loadConfig() (*Configuration, error) {
@@ -33,10 +30,6 @@ func loadConfig() (*Configuration, error) {
 	if config.ContainerFilename == "" {
 		config.ContainerFilename = config.WorkDir + "/internal/container.go"
 	}
-
-	config.PackageDirs[digen.PublicPackage] = ""
-	config.PackageDirs[digen.InternalPackage] = "internal"
-	config.PackageDirs[digen.DefinitionsPackage] = "internal/definitions"
 
 	return config, nil
 }

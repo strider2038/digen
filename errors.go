@@ -7,6 +7,7 @@ var (
 	ErrUnexpectedType    = errors.New("unexpected type")
 	ErrNotSupported      = errors.New("not supported")
 	ErrParsing           = errors.New("parsing error")
+	ErrFileAlreadyExists = errors.New("file already exists")
 
 	errFileIgnored = errors.New("file ignored")
 )

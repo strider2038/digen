@@ -37,10 +37,6 @@ func (c *Container) SetServiceName(s *domain.Service) {
 
 const basicContainerCloseFile = `package testpkg
 
-import (
-	"example.com/test/sql"
-)
-
 func (c *Container) Close() {
 	if c.connection != nil {
 		c.connection.Close()
@@ -56,6 +52,8 @@ import (
 )
 
 type Container interface {
+	SetError(err error)
+
 	ServiceName() *domain.Service
 }
 `

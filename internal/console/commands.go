@@ -25,6 +25,7 @@ func newMainCommand(opts *Options) *cobra.Command {
 
 	command.AddCommand(
 		newVersionCommand(opts),
+		newInitCommand(opts),
 		newGenerateCommand(opts),
 	)
 
@@ -41,6 +42,18 @@ func newVersionCommand(options *Options) *cobra.Command {
 	}
 }
 
+func newInitCommand(options *Options) *cobra.Command {
+	return &cobra.Command{
+		Use:           "init",
+		Short:         "Generates skeleton for internal container",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return Init()
+		},
+	}
+}
+
 func newGenerateCommand(options *Options) *cobra.Command {
 	return &cobra.Command{
 		Use:           "generate",
@@ -48,7 +61,7 @@ func newGenerateCommand(options *Options) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Generate()
+			return Generate(options)
 		},
 	}
 }

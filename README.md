@@ -8,12 +8,15 @@ Project is under development
   * [x] generate getters
   * [x] generate requirements
 * [x] use cobra/viper
-* [x] `HandleError` method
+* [x] `SetError` method
 * [x] generate package docs
+* [x] skeleton generation command (init)
+* [ ] import definitions package
+* [ ] remove unnecessary imports
 * [ ] apply gofmt
 * [ ] definitions generator
 * [ ] generate external services
-* [ ] skeleton generation command (init)
+* [ ] prompt for init (set work_dir, write first config)
 * [ ] custom container name
 * [ ] write doc
 * [ ] force variable name uniqueness

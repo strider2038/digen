@@ -2,7 +2,6 @@ package digen
 
 import (
 	"bytes"
-	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -11,10 +10,11 @@ import (
 type PackageType int
 
 const (
-	UnknownPackage PackageType = iota
+	unknownPackage PackageType = iota
 	PublicPackage
 	InternalPackage
 	DefinitionsPackage
+	lastPackage
 )
 
 type File struct {
@@ -23,29 +23,19 @@ type File struct {
 	Content []byte
 }
 
-func (f *File) WriteTo(dir string) error {
-	var content bytes.Buffer
-	headingTemplate.Execute(&content, nil)
-	content.Write(f.Content)
-
-	err := os.WriteFile(dir+"/"+f.Name, content.Bytes(), 0644)
-	if err != nil {
-		return errors.WithMessagef(err, "failed to write %s", f.Name)
+func (f *File) WithHeading(heading []byte) *File {
+	return &File{
+		Package: f.Package,
+		Name:    f.Name,
+		Content: append(heading, f.Content...),
 	}
-
-	return nil
 }
 
 type GenerationParameters struct {
-	PublicDir   string
-	InternalDir string
 }
 
 func DefaultGenerationParameters() GenerationParameters {
-	return GenerationParameters{
-		PublicDir:   "di",
-		InternalDir: "di/internal",
-	}
+	return GenerationParameters{}
 }
 
 func Generate(container *ContainerDefinition, params GenerationParameters) ([]*File, error) {
@@ -64,6 +54,21 @@ func Generate(container *ContainerDefinition, params GenerationParameters) ([]*F
 	}
 
 	return files, nil
+}
+
+func GenerateContainer(params GenerationParameters) (*File, error) {
+	var buffer bytes.Buffer
+
+	err := internalContainerTemplate.Execute(&buffer, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to generate internal container")
+	}
+
+	return &File{
+		Package: InternalPackage,
+		Name:    "container.go",
+		Content: buffer.Bytes(),
+	}, nil
 }
 
 var generators = [...]func(container *ContainerDefinition, params GenerationParameters) (*File, error){
@@ -149,11 +154,6 @@ func generateContainerCloseFile(container *ContainerDefinition, params Generatio
 	var buffer bytes.Buffer
 
 	buffer.WriteString("package " + container.Package + "\n\n")
-	buffer.WriteString("import (\n")
-	for _, imp := range container.Imports {
-		buffer.WriteString("\t" + imp.String() + "\n")
-	}
-	buffer.WriteString(")\n\n")
 
 	buffer.WriteString("func (c *Container) Close() {")
 	for _, service := range container.Services {
@@ -184,6 +184,7 @@ func generateDefinitionsContainerFile(container *ContainerDefinition, params Gen
 	buffer.WriteString(")\n\n")
 
 	buffer.WriteString("type Container interface {\n")
+	buffer.WriteString("\tSetError(err error)\n\n")
 	for _, service := range container.Services {
 		buffer.WriteString("\t" + strings.Title(service.Name) + "() " + service.Type.String() + "\n")
 	}
