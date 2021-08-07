@@ -2,10 +2,10 @@ package console
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 
 	"github.com/pkg/errors"
+	"github.com/pterm/pterm"
 	"github.com/strider2038/digen"
 )
 
@@ -20,8 +20,26 @@ func Generate(options *Options) error {
 		return err
 	}
 
-	fmt.Println("DI container", config.ContainerFilename, "successfully parsed")
+	pterm.Info.Println("DI container", config.ContainerFilename, "successfully parsed")
 
+	err = generateFiles(container, config, options)
+	if err != nil {
+		return err
+	}
+
+	if !digen.IsDefinitionsFileExist(config.WorkDir) {
+		err = generateDefinitionsFile(container, config)
+		if err != nil {
+			return err
+		}
+	}
+
+	pterm.Success.Println("Generation completed at dir", config.WorkDir)
+
+	return nil
+}
+
+func generateFiles(container *digen.ContainerDefinition, config *Configuration, options *Options) error {
 	params := digen.GenerationParameters{
 		RootPackage: config.RootPackage(),
 	}
@@ -43,26 +61,28 @@ func Generate(options *Options) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("File", file.Name, "generated")
+		pterm.Info.Println("File", file.Name, "generated")
 	}
 
-	if !digen.IsDefinitionsFileExist(config.WorkDir) {
-		file, err := digen.GenerateFactory(container, params)
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
-		writer := digen.NewWriter(config.WorkDir)
-		err = writer.WriteFile(file)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println("File", file.Name, "generated")
+func generateDefinitionsFile(container *digen.ContainerDefinition, config *Configuration) error {
+	params := digen.GenerationParameters{
+		RootPackage: config.RootPackage(),
+	}
+	file, err := digen.GenerateFactory(container, params)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println("Generation completed at dir", config.WorkDir)
+	writer := digen.NewWriter(config.WorkDir)
+	err = writer.WriteFile(file)
+	if err != nil {
+		return err
+	}
 
+	pterm.Info.Println("File", file.Name, "generated")
 	return nil
 }
 

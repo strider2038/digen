@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/pterm/pterm"
 	"github.com/strider2038/digen/internal/console"
 )
 
@@ -18,7 +18,7 @@ func main() {
 		console.BuildTime(buildTime),
 	)
 	if err != nil {
-		fmt.Println(err)
+		pterm.Error.Println(err)
 		os.Exit(1)
 	}
 }

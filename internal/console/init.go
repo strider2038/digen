@@ -1,8 +1,7 @@
 package console
 
 import (
-	"fmt"
-
+	"github.com/pterm/pterm"
 	"github.com/strider2038/digen"
 )
 
@@ -25,7 +24,7 @@ func Init() error {
 		return err
 	}
 
-	fmt.Println("Init completed: file", file.Name, "generated")
+	pterm.Success.Println("Init completed: file", file.Name, "generated")
 
 	return nil
 }
