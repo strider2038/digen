@@ -38,6 +38,12 @@ var closerTemplate = template.Must(template.New("closer").Parse(`
 	}
 `))
 
+var factoryTemplate = template.Must(template.New("factory").Parse(`
+func Create{{.ServiceTitle}}(c Container) {{.ServiceType}} {
+	panic("not implemented")
+}
+`))
+
 var internalContainerTemplate = template.Must(template.New("internal container").Parse(`package internal
 
 type Container struct {

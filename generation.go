@@ -12,10 +12,6 @@ type GenerationParameters struct {
 	RootPackage string
 }
 
-func DefaultGenerationParameters() GenerationParameters {
-	return GenerationParameters{}
-}
-
 func (params GenerationParameters) rootPackageName() string {
 	path := strings.Split(params.RootPackage, "/")
 	if len(path) == 0 {
@@ -59,6 +55,27 @@ func GenerateContainer(params GenerationParameters) (*File, error) {
 		Name:    "container.go",
 		Content: buffer.Bytes(),
 	}, nil
+}
+
+func GenerateFactory(container *ContainerDefinition, params GenerationParameters) (*File, error) {
+	file := NewFileBuilder("definitions.go", "definitions", DefinitionsPackage)
+
+	for _, service := range container.Services {
+		if service.IsExternal || service.IsRequired {
+			continue
+		}
+		file.AddImport(container.GetImport(service))
+
+		err := factoryTemplate.Execute(file, templateParameters{
+			ServiceTitle: service.Title(),
+			ServiceType:  service.Type.String(),
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to generate factory for %s", service.Name)
+		}
+	}
+
+	return file.GetFile(), nil
 }
 
 var generators = [...]func(container *ContainerDefinition, params GenerationParameters) (*File, error){

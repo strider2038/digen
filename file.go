@@ -17,6 +17,12 @@ var packageDirs = [lastPackage]string{
 	DefinitionsPackage: "internal/definitions",
 }
 
+func IsDefinitionsFileExist(workDir string) bool {
+	filename := workDir + "/" + packageDirs[DefinitionsPackage] + "/definitions.go"
+
+	return isFileExist(filename)
+}
+
 type File struct {
 	Package PackageType
 	Name    string

@@ -85,3 +85,8 @@ func (d TypeDefinition) String() string {
 
 	return s.String()
 }
+
+type FactoryFile struct {
+	Imports  map[string]*ImportDefinition
+	Services []string
+}

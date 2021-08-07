@@ -245,6 +245,21 @@ func (c *Container) SecondService() *domain.Service {
 }
 `
 
+const factoryFile = `package definitions
+
+import (
+	"example.com/test/domain"
+)
+
+func CreateFirstService(c Container) *domain.Service {
+	panic("not implemented")
+}
+
+func CreateSecondService(c Container) *domain.Service {
+	panic("not implemented")
+}
+`
+
 func TestGenerate(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -479,4 +494,59 @@ func TestGenerate(t *testing.T) {
 			test.assert(t, files)
 		})
 	}
+}
+
+func TestGenerateFactory(t *testing.T) {
+	container := &digen.ContainerDefinition{
+		Name:    "Container",
+		Package: "testpkg",
+		Imports: map[string]*digen.ImportDefinition{
+			"domain":   {Path: `"example.com/test/domain"`},
+			"external": {Path: `"example.com/test/external"`},
+		},
+		Services: []digen.ServiceDefinition{
+			{
+				Name: "firstService",
+				Type: digen.TypeDefinition{
+					IsPointer: true,
+					Package:   "domain",
+					Name:      "Service",
+				},
+			},
+			{
+				Name: "secondService",
+				Type: digen.TypeDefinition{
+					IsPointer: true,
+					Package:   "domain",
+					Name:      "Service",
+				},
+			},
+			{
+				Name: "externalService",
+				Type: digen.TypeDefinition{
+					IsPointer: true,
+					Package:   "external",
+					Name:      "Service",
+				},
+				IsExternal: true,
+			},
+			{
+				Name: "requiredService",
+				Type: digen.TypeDefinition{
+					IsPointer: true,
+					Package:   "required",
+					Name:      "Service",
+				},
+				IsRequired: true,
+			},
+		},
+	}
+
+	file, err := digen.GenerateFactory(container, digen.GenerationParameters{
+		RootPackage: "example.com/test/di",
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	assert.Equal(t, factoryFile, string(file.Content))
 }

@@ -11,27 +11,61 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ParseFile(filename string) (*ContainerDefinition, error) {
+func ParseContainerFromFile(filename string) (*ContainerDefinition, error) {
+	file, err := parseFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseContainerAST(file)
+}
+
+func ParseContainerFromSource(source string) (*ContainerDefinition, error) {
+	file, err := parseSource(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseContainerAST(file)
+}
+
+func ParseFactoryFromFile(filename string) (*FactoryFile, error) {
+	file, err := parseFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseFactoryAST(file)
+}
+
+func ParseFactoryFromSource(source string) (*FactoryFile, error) {
+	file, err := parseSource(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseFactoryAST(file)
+}
+
+func parseFile(filename string) (*ast.File, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse file %s", filename)
 	}
-
-	return ParseAST(file)
+	return file, nil
 }
 
-func ParseSource(source string) (*ContainerDefinition, error) {
+func parseSource(source string) (*ast.File, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", source, parser.ParseComments)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse source")
 	}
-
-	return ParseAST(file)
+	return file, nil
 }
 
-func ParseAST(file *ast.File) (*ContainerDefinition, error) {
+func parseContainerAST(file *ast.File) (*ContainerDefinition, error) {
 	container, err := getContainer(file)
 	if err != nil {
 		return nil, err
@@ -196,4 +230,26 @@ func parseFieldTags(field *ast.Field) []string {
 	}
 
 	return nil
+}
+
+func parseFactoryAST(file *ast.File) (*FactoryFile, error) {
+	imports, err := parseImports(file)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to parse imports")
+	}
+
+	var services []string
+
+	for name, object := range file.Scope.Objects {
+		if object.Kind == ast.Fun && strings.HasPrefix(name, "Create") {
+			services = append(services, strings.TrimPrefix(name, "Create"))
+		}
+	}
+
+	factory := &FactoryFile{
+		Imports:  imports,
+		Services: services,
+	}
+
+	return factory, nil
 }

@@ -15,15 +15,16 @@ func Generate(options *Options) error {
 		return err
 	}
 
-	container, err := digen.ParseFile(config.ContainerFilename)
+	container, err := digen.ParseContainerFromFile(config.ContainerFilename)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("DI container", config.ContainerFilename, "successfully parsed")
 
-	params := digen.DefaultGenerationParameters()
-	params.RootPackage = config.RootPackage()
+	params := digen.GenerationParameters{
+		RootPackage: config.RootPackage(),
+	}
 
 	files, err := digen.Generate(container, params)
 	if err != nil {
@@ -42,6 +43,22 @@ func Generate(options *Options) error {
 		if err != nil {
 			return err
 		}
+		fmt.Println("File", file.Name, "generated")
+	}
+
+	if !digen.IsDefinitionsFileExist(config.WorkDir) {
+		file, err := digen.GenerateFactory(container, params)
+		if err != nil {
+			return err
+		}
+
+		writer := digen.NewWriter(config.WorkDir)
+		err = writer.WriteFile(file)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("File", file.Name, "generated")
 	}
 
 	fmt.Println("Generation completed at dir", config.WorkDir)

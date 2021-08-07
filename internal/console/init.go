@@ -12,7 +12,7 @@ func Init() error {
 		return err
 	}
 
-	params := digen.DefaultGenerationParameters()
+	params := digen.GenerationParameters{}
 	file, err := digen.GenerateContainer(params)
 	if err != nil {
 		return err
