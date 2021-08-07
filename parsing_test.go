@@ -39,23 +39,29 @@ func TestParseSource(t *testing.T) {
 	assertExpectedServices(t, container)
 }
 
-func assertExpectedImports(t *testing.T, imports []digen.ImportDefinition) {
-	if assert.Len(t, imports, 4) {
-		assert.Equal(t, "usecase", imports[0].ID)
-		assert.Equal(t, "", imports[0].Name)
-		assert.Equal(t, `"example.com/test/application/usecase"`, imports[0].Path)
+func assertExpectedImports(t *testing.T, imports map[string]*digen.ImportDefinition) {
+	if assert.NotNil(t, imports["usecase"]) {
+		assert.Equal(t, "usecase", imports["usecase"].ID)
+		assert.Equal(t, "", imports["usecase"].Name)
+		assert.Equal(t, `"example.com/test/application/usecase"`, imports["usecase"].Path)
+	}
 
-		assert.Equal(t, "domain", imports[1].ID)
-		assert.Equal(t, "", imports[1].Name)
-		assert.Equal(t, `"example.com/test/domain"`, imports[1].Path)
+	if assert.NotNil(t, imports["domain"]) {
+		assert.Equal(t, "domain", imports["domain"].ID)
+		assert.Equal(t, "", imports["domain"].Name)
+		assert.Equal(t, `"example.com/test/domain"`, imports["domain"].Path)
+	}
 
-		assert.Equal(t, "config", imports[2].ID)
-		assert.Equal(t, "", imports[2].Name)
-		assert.Equal(t, `"example.com/test/di/config"`, imports[2].Path)
+	if assert.NotNil(t, imports["config"]) {
+		assert.Equal(t, "config", imports["config"].ID)
+		assert.Equal(t, "", imports["config"].Name)
+		assert.Equal(t, `"example.com/test/di/config"`, imports["config"].Path)
+	}
 
-		assert.Equal(t, "httpadapter", imports[3].ID)
-		assert.Equal(t, "httpadapter", imports[3].Name)
-		assert.Equal(t, `"example.com/test/infrastructure/api/http"`, imports[3].Path)
+	if assert.NotNil(t, imports["httpadapter"]) {
+		assert.Equal(t, "httpadapter", imports["httpadapter"].ID)
+		assert.Equal(t, "httpadapter", imports["httpadapter"].Name)
+		assert.Equal(t, `"example.com/test/infrastructure/api/http"`, imports["httpadapter"].Path)
 	}
 }
 

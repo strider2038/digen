@@ -12,7 +12,7 @@ const basicContainerGetFile = `package testpkg
 
 import (
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
+	"example.com/test/di/internal/definitions"
 )
 
 func (c *Container) ServiceName() *domain.Service {
@@ -27,7 +27,6 @@ const basicContainerSetFile = `package testpkg
 
 import (
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 func (c *Container) SetServiceName(s *domain.Service) {
@@ -48,7 +47,6 @@ const basicDefinitionsContainerFile = `package definitions
 
 import (
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 type Container interface {
@@ -62,9 +60,8 @@ const basicPublicContainerFile = `package di
 
 import (
 	"sync"
-
+	"example.com/test/di/internal"
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 type Container struct {
@@ -115,9 +112,8 @@ const publicContainerWithSetterFile = `package di
 
 import (
 	"sync"
-
+	"example.com/test/di/internal"
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 type Container struct {
@@ -162,9 +158,8 @@ const publicContainerWithRequirementFile = `package di
 
 import (
 	"sync"
-
+	"example.com/test/di/internal"
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 type Container struct {
@@ -207,7 +202,6 @@ const containerGetFileWithExternalService = `package testpkg
 
 import (
 	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 func (c *Container) ServiceName() *domain.Service {
@@ -229,6 +223,28 @@ func (c *Container) Configuration() config.Configuration {
 }
 `
 
+const twoServicesContainerGetFile = `package testpkg
+
+import (
+	"example.com/test/domain"
+	"example.com/test/di/internal/definitions"
+)
+
+func (c *Container) FirstService() *domain.Service {
+	if c.firstService == nil {
+		c.firstService = definitions.CreateFirstService(c)
+	}
+	return c.firstService
+}
+
+func (c *Container) SecondService() *domain.Service {
+	if c.secondService == nil {
+		c.secondService = definitions.CreateSecondService(c)
+	}
+	return c.secondService
+}
+`
+
 func TestGenerate(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -240,9 +256,9 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/domain"`},
-					{Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"domain":      {Path: `"example.com/test/domain"`},
+					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -276,9 +292,9 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/domain"`},
-					{Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"domain":      {Path: `"example.com/test/domain"`},
+					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -309,9 +325,9 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/domain"`},
-					{Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"domain":      {Path: `"example.com/test/domain"`},
+					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -338,9 +354,9 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/domain"`},
-					{Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"domain":      {Path: `"example.com/test/domain"`},
+					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -367,8 +383,8 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/di/config"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"config": {Path: `"example.com/test/di/config"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -393,8 +409,8 @@ func TestGenerate(t *testing.T) {
 			container: &digen.ContainerDefinition{
 				Name:    "Container",
 				Package: "testpkg",
-				Imports: []digen.ImportDefinition{
-					{Path: `"example.com/test/sql"`},
+				Imports: map[string]*digen.ImportDefinition{
+					"sql": {Path: `"example.com/test/sql"`},
 				},
 				Services: []digen.ServiceDefinition{
 					{
@@ -416,10 +432,48 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, basicContainerCloseFile, string(files[1].Content))
 			},
 		},
+		{
+			name: "two services from one package",
+			container: &digen.ContainerDefinition{
+				Name:    "Container",
+				Package: "testpkg",
+				Imports: map[string]*digen.ImportDefinition{
+					"domain": {Path: `"example.com/test/domain"`},
+				},
+				Services: []digen.ServiceDefinition{
+					{
+						Name: "firstService",
+						Type: digen.TypeDefinition{
+							IsPointer: true,
+							Package:   "domain",
+							Name:      "Service",
+						},
+						IsPublic: true,
+					},
+					{
+						Name: "secondService",
+						Type: digen.TypeDefinition{
+							IsPointer: true,
+							Package:   "domain",
+							Name:      "Service",
+						},
+						IsPublic: true,
+					},
+				},
+			},
+			assert: func(t *testing.T, files []*digen.File) {
+				t.Helper()
+
+				require.Greater(t, len(files), 1)
+				assert.Equal(t, twoServicesContainerGetFile, string(files[0].Content))
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			files, err := digen.Generate(test.container, digen.GenerationParameters{})
+			files, err := digen.Generate(test.container, digen.GenerationParameters{
+				RootPackage: "example.com/test/di",
+			})
 
 			require.NoError(t, err)
 			test.assert(t, files)

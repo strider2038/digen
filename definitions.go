@@ -5,8 +5,16 @@ import "strings"
 type ContainerDefinition struct {
 	Name     string
 	Package  string
-	Imports  []ImportDefinition
+	Imports  map[string]*ImportDefinition
 	Services []ServiceDefinition
+}
+
+func (c ContainerDefinition) GetImport(s ServiceDefinition) string {
+	imp := c.Imports[s.Type.Package]
+	if imp == nil {
+		return ""
+	}
+	return imp.String()
 }
 
 type ImportDefinition struct {

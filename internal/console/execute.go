@@ -6,10 +6,10 @@ func Execute(options ...OptionFunc) error {
 		setOption(opts)
 	}
 
-	mainCommand := newMainCommand(opts)
+	command := newMainCommand(opts)
 	if opts.overrideArguments {
-		mainCommand.SetArgs(opts.Arguments)
+		command.SetArgs(opts.Arguments)
 	}
 
-	return mainCommand.Execute()
+	return command.Execute()
 }

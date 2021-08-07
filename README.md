@@ -11,12 +11,13 @@ Project is under development
 * [x] `SetError` method
 * [x] generate package docs
 * [x] skeleton generation command (init)
-* [ ] import definitions package
-* [ ] remove unnecessary imports
+* [x] import definitions package
+* [x] remove unnecessary imports
 * [ ] apply gofmt
 * [ ] definitions generator
 * [ ] generate external services
 * [ ] prompt for init (set work_dir, write first config)
+* [ ] custom close functions
 * [ ] custom container name
 * [ ] write doc
 * [ ] force variable name uniqueness

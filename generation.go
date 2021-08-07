@@ -2,40 +2,30 @@ package digen
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
 )
 
-type PackageType int
-
-const (
-	unknownPackage PackageType = iota
-	PublicPackage
-	InternalPackage
-	DefinitionsPackage
-	lastPackage
-)
-
-type File struct {
-	Package PackageType
-	Name    string
-	Content []byte
-}
-
-func (f *File) WithHeading(heading []byte) *File {
-	return &File{
-		Package: f.Package,
-		Name:    f.Name,
-		Content: append(heading, f.Content...),
-	}
-}
-
 type GenerationParameters struct {
+	RootPackage string
 }
 
 func DefaultGenerationParameters() GenerationParameters {
 	return GenerationParameters{}
+}
+
+func (params GenerationParameters) rootPackageName() string {
+	path := strings.Split(params.RootPackage, "/")
+	if len(path) == 0 {
+		return ""
+	}
+	return path[len(path)-1]
+}
+
+func (params *GenerationParameters) packageName(packageType PackageType) string {
+	return strconv.Quote(params.RootPackage + "/" + packageDirs[packageType])
 }
 
 func Generate(container *ContainerDefinition, params GenerationParameters) ([]*File, error) {
@@ -47,7 +37,7 @@ func Generate(container *ContainerDefinition, params GenerationParameters) ([]*F
 			continue
 		}
 		if err != nil {
-			return nil, errors.WithMessage(err, "failed to generate getters file")
+			return nil, errors.WithMessage(err, "failed to generate file")
 		}
 
 		files = append(files, file)
@@ -80,54 +70,47 @@ var generators = [...]func(container *ContainerDefinition, params GenerationPara
 }
 
 func generateContainerGettersFile(container *ContainerDefinition, params GenerationParameters) (*File, error) {
-	var buffer bytes.Buffer
-
-	buffer.WriteString("package " + container.Package + "\n\n")
-	buffer.WriteString("import (\n")
-	for _, imp := range container.Imports {
-		buffer.WriteString("\t" + imp.String() + "\n")
-	}
-	// todo: import definitions package
-	buffer.WriteString(")\n")
+	file := NewFileBuilder("container_get.go", container.Package, InternalPackage)
+	needsDefinitions := false
 
 	for _, service := range container.Services {
-		err := getterTemplate.Execute(&buffer, templateParameters{
+		file.AddImport(container.GetImport(service))
+
+		parameters := templateParameters{
 			ContainerName: container.Name,
 			ServiceName:   service.Name,
 			ServiceTitle:  service.Title(),
 			ServiceType:   service.Type.String(),
 			HasDefinition: !service.IsRequired,
 			PanicOnNil:    service.IsExternal,
-		})
+		}
+		err := getterTemplate.Execute(file, parameters)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to generate getter for %s", service.Name)
 		}
+
+		if parameters.HasDefinition && !parameters.PanicOnNil {
+			needsDefinitions = true
+		}
 	}
 
-	return &File{
-		Package: InternalPackage,
-		Name:    "container_get.go",
-		Content: buffer.Bytes(),
-	}, nil
+	if needsDefinitions {
+		file.AddImport(params.packageName(DefinitionsPackage))
+	}
+
+	return file.GetFile(), nil
 }
 
 func generateContainerSettersFile(container *ContainerDefinition, params GenerationParameters) (*File, error) {
-	var buffer bytes.Buffer
-
-	buffer.WriteString("package " + container.Package + "\n\n")
-	buffer.WriteString("import (\n")
-	for _, imp := range container.Imports {
-		buffer.WriteString("\t" + imp.String() + "\n")
-	}
-	// todo: import definitions package
-	buffer.WriteString(")\n")
+	file := NewFileBuilder("container_set.go", container.Package, InternalPackage)
 
 	count := 0
 
 	for _, service := range container.Services {
 		if service.HasSetter || service.IsExternal || service.IsRequired {
+			file.AddImport(container.GetImport(service))
 			count++
-			err := setterTemplate.Execute(&buffer, templateParameters{
+			err := setterTemplate.Execute(file, templateParameters{
 				ContainerName: container.Name,
 				ServiceName:   service.Name,
 				ServiceTitle:  service.Title(),
@@ -143,75 +126,50 @@ func generateContainerSettersFile(container *ContainerDefinition, params Generat
 		return nil, errFileIgnored
 	}
 
-	return &File{
-		Package: InternalPackage,
-		Name:    "container_set.go",
-		Content: buffer.Bytes(),
-	}, nil
+	return file.GetFile(), nil
 }
 
 func generateContainerCloseFile(container *ContainerDefinition, params GenerationParameters) (*File, error) {
-	var buffer bytes.Buffer
+	file := NewFileBuilder("container_close.go", container.Package, InternalPackage)
 
-	buffer.WriteString("package " + container.Package + "\n\n")
-
-	buffer.WriteString("func (c *Container) Close() {")
+	file.WriteString("func (c *Container) Close() {")
 	for _, service := range container.Services {
 		if service.HasCloser {
-			err := closerTemplate.Execute(&buffer, templateParameters{ServiceName: service.Name})
+			err := closerTemplate.Execute(file, templateParameters{ServiceName: service.Name})
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate closer for %s", service.Name)
 			}
 		}
 	}
-	buffer.WriteString("}\n")
+	file.WriteString("}\n")
 
-	return &File{
-		Package: InternalPackage,
-		Name:    "container_close.go",
-		Content: buffer.Bytes(),
-	}, nil
+	return file.GetFile(), nil
 }
 
 func generateDefinitionsContainerFile(container *ContainerDefinition, params GenerationParameters) (*File, error) {
-	var buffer bytes.Buffer
+	file := NewFileBuilder("container.go", "definitions", DefinitionsPackage)
 
-	buffer.WriteString("package definitions\n\n")
-	buffer.WriteString("import (\n")
-	for _, imp := range container.Imports {
-		buffer.WriteString("\t" + imp.String() + "\n")
-	}
-	buffer.WriteString(")\n\n")
-
-	buffer.WriteString("type Container interface {\n")
-	buffer.WriteString("\tSetError(err error)\n\n")
+	file.WriteString("\ntype Container interface {\n")
+	file.WriteString("\tSetError(err error)\n\n")
 	for _, service := range container.Services {
-		buffer.WriteString("\t" + strings.Title(service.Name) + "() " + service.Type.String() + "\n")
+		file.AddImport(container.GetImport(service))
+		file.WriteString("\t" + service.Title() + "() " + service.Type.String() + "\n")
 	}
-	buffer.WriteString("}\n")
+	file.WriteString("}\n")
 
-	return &File{
-		Package: DefinitionsPackage,
-		Name:    "container.go",
-		Content: buffer.Bytes(),
-	}, nil
+	return file.GetFile(), nil
 }
 
 func generatePublicContainerFile(container *ContainerDefinition, params GenerationParameters) (*File, error) {
-	var buffer bytes.Buffer
-
-	buffer.WriteString("package di\n\n")
-	buffer.WriteString("import (\n")
-	buffer.WriteString("\t\"sync\"\n\n")
-	for _, imp := range container.Imports {
-		buffer.WriteString("\t" + imp.String() + "\n")
-	}
-	buffer.WriteString(")\n")
+	file := NewFileBuilder("container.go", params.rootPackageName(), PublicPackage)
+	file.AddImport(`"sync"`)
+	file.AddImport(params.packageName(InternalPackage))
 
 	var methods bytes.Buffer
 	var arguments bytes.Buffer
 	var argumentSetters bytes.Buffer
 	for _, service := range container.Services {
+		needsImport := false
 		parameters := templateParameters{
 			ContainerName: container.Name,
 			ServiceName:   service.Name,
@@ -220,18 +178,21 @@ func generatePublicContainerFile(container *ContainerDefinition, params Generati
 		}
 
 		if service.IsPublic {
+			needsImport = true
 			err := publicGetterTemplate.Execute(&methods, parameters)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate getter for %s", service.Name)
 			}
 		}
 		if service.HasSetter {
+			needsImport = true
 			err := publicSetterTemplate.Execute(&methods, parameters)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate setter for %s", service.Name)
 			}
 		}
 		if service.IsRequired {
+			needsImport = true
 			err := argumentTemplate.Execute(&arguments, parameters)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate argument for %s", service.Name)
@@ -240,6 +201,10 @@ func generatePublicContainerFile(container *ContainerDefinition, params Generati
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate argument setter for %s", service.Name)
 			}
+		}
+
+		if needsImport {
+			file.AddImport(container.GetImport(service))
 		}
 	}
 
@@ -250,7 +215,7 @@ func generatePublicContainerFile(container *ContainerDefinition, params Generati
 		argumentSetters.WriteString("\n")
 	}
 
-	err := publicContainerTemplate.Execute(&buffer, containerTemplateParameters{
+	err := publicContainerTemplate.Execute(file, containerTemplateParameters{
 		ContainerArguments:       arguments.String(),
 		ContainerArgumentSetters: argumentSetters.String(),
 		ContainerMethods:         methods.String(),
@@ -259,9 +224,5 @@ func generatePublicContainerFile(container *ContainerDefinition, params Generati
 		return nil, errors.Wrap(err, "failed to generate public container")
 	}
 
-	return &File{
-		Package: PublicPackage,
-		Name:    "container.go",
-		Content: buffer.Bytes(),
-	}, nil
+	return file.GetFile(), nil
 }

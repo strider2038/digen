@@ -7,28 +7,17 @@ import (
 )
 
 type Writer struct {
-	WorkDir     string
-	PackageDirs [lastPackage]string
-	Overwrite   bool
-	Heading     []byte
+	WorkDir   string
+	Overwrite bool
+	Heading   []byte
 }
 
 func NewWriter(workDir string) *Writer {
-	return &Writer{
-		WorkDir: workDir,
-		PackageDirs: [lastPackage]string{
-			InternalPackage:    "internal",
-			DefinitionsPackage: "internal/definitions",
-		},
-	}
+	return &Writer{WorkDir: workDir}
 }
 
 func (w *Writer) WriteFile(file *File) error {
-	if len(w.Heading) > 0 {
-		file = file.WithHeading(w.Heading)
-	}
-
-	dir := w.WorkDir + "/" + w.PackageDirs[file.Package]
+	dir := w.WorkDir + "/" + packageDirs[file.Package]
 	filename := dir + "/" + file.Name
 
 	if !w.Overwrite && isFileExist(filename) {
@@ -40,7 +29,7 @@ func (w *Writer) WriteFile(file *File) error {
 		return errors.Wrapf(err, "failed to create dir %s", dir)
 	}
 
-	err = os.WriteFile(filename, file.Content, 0644)
+	err = os.WriteFile(filename, append(w.Heading, file.Content...), 0644)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to write %s", file.Name)
 	}

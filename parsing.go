@@ -103,22 +103,22 @@ func createServiceDefinitions(container *ast.StructType) ([]ServiceDefinition, e
 	return services, nil
 }
 
-func parseImports(file *ast.File) ([]ImportDefinition, error) {
-	imports := make([]ImportDefinition, 0, len(file.Imports))
+func parseImports(file *ast.File) (map[string]*ImportDefinition, error) {
+	imports := make(map[string]*ImportDefinition, len(file.Imports))
 
 	for _, spec := range file.Imports {
 		imp, err := parseImportDefinition(spec)
 		if err != nil {
 			return nil, err
 		}
-		imports = append(imports, imp)
+		imports[imp.ID] = imp
 	}
 
 	return imports, nil
 }
 
-func parseImportDefinition(spec *ast.ImportSpec) (ImportDefinition, error) {
-	definition := ImportDefinition{}
+func parseImportDefinition(spec *ast.ImportSpec) (*ImportDefinition, error) {
+	definition := &ImportDefinition{}
 
 	if spec.Name != nil {
 		definition.Name = spec.Name.Name
@@ -133,7 +133,7 @@ func parseImportDefinition(spec *ast.ImportSpec) (ImportDefinition, error) {
 	} else {
 		path, err := strconv.Unquote(definition.Path)
 		if err != nil {
-			return definition, errors.Wrap(err, "failed to parse import path")
+			return nil, errors.Wrap(err, "failed to parse import path")
 		}
 		elements := strings.Split(path, "/")
 		if len(elements) > 0 {

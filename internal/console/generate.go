@@ -23,6 +23,7 @@ func Generate(options *Options) error {
 	fmt.Println("DI container", config.ContainerFilename, "successfully parsed")
 
 	params := digen.DefaultGenerationParameters()
+	params.RootPackage = config.RootPackage()
 
 	files, err := digen.Generate(container, params)
 	if err != nil {
