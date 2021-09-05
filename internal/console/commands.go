@@ -49,7 +49,12 @@ func newInitCommand(options *Options) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Init()
+			generator, err := newGenerator(options)
+			if err != nil {
+				return err
+			}
+
+			return generator.Initialize()
 		},
 	}
 }
@@ -61,7 +66,12 @@ func newGenerateCommand(options *Options) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Generate(options)
+			generator, err := newGenerator(options)
+			if err != nil {
+				return err
+			}
+
+			return generator.Generate()
 		},
 	}
 }

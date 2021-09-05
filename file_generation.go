@@ -24,7 +24,7 @@ func (params *GenerationParameters) packageName(packageType PackageType) string 
 	return strconv.Quote(params.RootPackage + "/" + packageDirs[packageType])
 }
 
-func Generate(container *ContainerDefinition, params GenerationParameters) ([]*File, error) {
+func GenerateFiles(container *ContainerDefinition, params GenerationParameters) ([]*File, error) {
 	files := make([]*File, 0)
 
 	for _, generate := range generators {
@@ -42,7 +42,7 @@ func Generate(container *ContainerDefinition, params GenerationParameters) ([]*F
 	return files, nil
 }
 
-func GenerateContainer(params GenerationParameters) (*File, error) {
+func GenerateContainerFile(params GenerationParameters) (*File, error) {
 	var buffer bytes.Buffer
 
 	err := internalContainerTemplate.Execute(&buffer, nil)

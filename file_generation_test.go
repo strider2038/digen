@@ -218,7 +218,7 @@ import (
 	"example.com/test/di/config"
 )
 
-func (c *Container) Configuration() config.Configuration {
+func (c *Container) Generator() config.Generator {
 	return c.configuration
 }
 `
@@ -486,7 +486,7 @@ func TestGenerate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			files, err := digen.Generate(test.container, digen.GenerationParameters{
+			files, err := digen.GenerateFiles(test.container, digen.GenerationParameters{
 				RootPackage: "example.com/test/di",
 			})
 

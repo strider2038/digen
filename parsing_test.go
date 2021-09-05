@@ -106,7 +106,7 @@ func assertExpectedContainerServices(t *testing.T, services []digen.ServiceDefin
 	if assert.Len(t, services, 4) {
 		assert.Equal(t, "configuration", services[0].Name)
 		assert.Equal(t, "config", services[0].Type.Package)
-		assert.Equal(t, "Configuration", services[0].Type.Name)
+		assert.Equal(t, "Generator", services[0].Type.Name)
 		assert.False(t, services[0].Type.IsPointer)
 		assert.False(t, services[0].HasSetter)
 		assert.False(t, services[0].HasCloser)

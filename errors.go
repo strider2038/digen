@@ -9,5 +9,6 @@ var (
 	ErrParsing           = errors.New("parsing error")
 	ErrFileAlreadyExists = errors.New("file already exists")
 
-	errFileIgnored = errors.New("file ignored")
+	errFileIgnored   = errors.New("file ignored")
+	errMissingModule = errors.New("cannot detect module from go.mod")
 )
