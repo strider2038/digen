@@ -102,7 +102,7 @@ func (g *Generator) init() error {
 	return nil
 }
 
-func (g *Generator) generateFiles(container *ContainerDefinition) error {
+func (g *Generator) generateFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
 		RootPackage: g.RootPackage(),
 	}
@@ -130,7 +130,7 @@ func (g *Generator) generateFiles(container *ContainerDefinition) error {
 	return nil
 }
 
-func (g *Generator) generateDefinitionsFile(container *ContainerDefinition) error {
+func (g *Generator) generateDefinitionsFile(container *RootContainerDefinition) error {
 	params := GenerationParameters{
 		RootPackage: g.RootPackage(),
 	}

@@ -2,14 +2,15 @@ package digen
 
 import "strings"
 
-type ContainerDefinition struct {
-	Name     string
-	Package  string
-	Imports  map[string]*ImportDefinition
-	Services []ServiceDefinition
+type RootContainerDefinition struct {
+	Name       string
+	Package    string
+	Imports    map[string]*ImportDefinition
+	Services   []*ServiceDefinition
+	Containers []*ContainerDefinition
 }
 
-func (c ContainerDefinition) GetImport(s ServiceDefinition) string {
+func (c RootContainerDefinition) GetImport(s *ServiceDefinition) string {
 	imp := c.Imports[s.Type.Package]
 	if imp == nil {
 		return ""
@@ -46,8 +47,8 @@ func (s ServiceDefinition) Title() string {
 	return strings.Title(s.Name)
 }
 
-func newServiceDefinition(name string, typeDef TypeDefinition, tags []string) ServiceDefinition {
-	definition := ServiceDefinition{Name: name, Type: typeDef}
+func newServiceDefinition(name string, typeDef TypeDefinition, tags []string) *ServiceDefinition {
+	definition := &ServiceDefinition{Name: name, Type: typeDef}
 
 	for _, tag := range tags {
 		switch tag {
@@ -65,6 +66,16 @@ func newServiceDefinition(name string, typeDef TypeDefinition, tags []string) Se
 	}
 
 	return definition
+}
+
+type ContainerDefinition struct {
+	Name     string
+	Type     TypeDefinition
+	Services []*ServiceDefinition
+}
+
+func (c ContainerDefinition) Title() string {
+	return strings.Title(c.Name)
 }
 
 type TypeDefinition struct {
@@ -89,4 +100,16 @@ func (d TypeDefinition) String() string {
 type FactoryFile struct {
 	Imports  map[string]*ImportDefinition
 	Services []string
+}
+
+type Tags []string
+
+func (tags Tags) Contains(tag string) bool {
+	for _, t := range tags {
+		if t == tag {
+			return true
+		}
+	}
+
+	return false
 }

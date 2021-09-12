@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ParseContainerFromFile(filename string) (*ContainerDefinition, error) {
+func ParseContainerFromFile(filename string) (*RootContainerDefinition, error) {
 	file, err := parseFile(filename)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func ParseContainerFromFile(filename string) (*ContainerDefinition, error) {
 	return parseContainerAST(file)
 }
 
-func ParseContainerFromSource(source string) (*ContainerDefinition, error) {
+func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
 	file, err := parseSource(source)
 	if err != nil {
 		return nil, err
@@ -65,15 +65,15 @@ func parseSource(source string) (*ast.File, error) {
 	return file, nil
 }
 
-func parseContainerAST(file *ast.File) (*ContainerDefinition, error) {
+func parseContainerAST(file *ast.File) (*RootContainerDefinition, error) {
 	container, err := getContainer(file)
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := createServiceDefinitions(container)
+	services, containers, err := createDefinitions(container)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to parse service definitions")
+		return nil, errors.WithMessage(err, "failed to parse definitions")
 	}
 
 	imports, err := parseImports(file)
@@ -85,11 +85,12 @@ func parseContainerAST(file *ast.File) (*ContainerDefinition, error) {
 		return nil, errors.Wrap(ErrParsing, "missing package name")
 	}
 
-	definition := &ContainerDefinition{
-		Name:     "Container",
-		Package:  file.Name.Name,
-		Imports:  imports,
-		Services: services,
+	definition := &RootContainerDefinition{
+		Name:       "Container",
+		Package:    file.Name.Name,
+		Imports:    imports,
+		Services:   services,
+		Containers: containers,
 	}
 
 	return definition, nil
@@ -113,24 +114,83 @@ func getContainer(file *ast.File) (*ast.StructType, error) {
 	return containerStruct, nil
 }
 
-func createServiceDefinitions(container *ast.StructType) ([]ServiceDefinition, error) {
-	services := make([]ServiceDefinition, 0, len(container.Fields.List))
+func createDefinitions(container *ast.StructType) ([]*ServiceDefinition, []*ContainerDefinition, error) {
+	services := make([]*ServiceDefinition, 0)
+	containers := make([]*ContainerDefinition, 0)
 
 	for _, field := range container.Fields.List {
 		fieldType, err := parseFieldType(field)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if fieldType.Name == "error" {
 			continue
 		}
 
-		service := newServiceDefinition(
-			parseFieldName(field),
-			fieldType,
-			parseFieldTags(field),
-		)
+		tags := parseFieldTags(field)
+		if tags.Contains("container") {
+			internalContainer, err := createContainerDefinition(field)
+			if err != nil {
+				return nil, nil, err
+			}
+			containers = append(containers, internalContainer)
+		} else {
+			service := newServiceDefinition(parseFieldName(field), fieldType, tags)
+			services = append(services, service)
+		}
+	}
 
+	return services, containers, nil
+}
+
+func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
+	fieldType, err := parseFieldType(field)
+	if err != nil {
+		return nil, err
+	}
+	fieldType.Package = "internal"
+
+	definition := &ContainerDefinition{
+		Name: parseFieldName(field),
+		Type: fieldType,
+	}
+
+	container, err := parseContainerField(field)
+	if err != nil {
+		return nil, err
+	}
+
+	definition.Services, err = createContainerServiceDefinitions(container)
+	if err != nil {
+		return nil, err
+	}
+
+	return definition, nil
+}
+
+func createContainerServiceDefinitions(container *ast.StructType) ([]*ServiceDefinition, error) {
+	services := make([]*ServiceDefinition, 0)
+	err := validateInternalContainer(container)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, field := range container.Fields.List {
+		if i == 0 {
+			continue
+		}
+
+		fieldType, err := parseFieldType(field)
+		if err != nil {
+			return nil, err
+		}
+
+		tags := parseFieldTags(field)
+		if tags.Contains("container") {
+			return nil, errors.Wrap(ErrNotSupported, "container inside container")
+		}
+
+		service := newServiceDefinition(parseFieldName(field), fieldType, tags)
 		services = append(services, service)
 	}
 
@@ -223,13 +283,39 @@ func parseTypeDefinition(expr ast.Expr) (TypeDefinition, error) {
 	return TypeDefinition{}, errors.Wrap(ErrUnexpectedType, "failed to parse type")
 }
 
-func parseFieldTags(field *ast.Field) []string {
+func parseFieldTags(field *ast.Field) Tags {
 	if field.Tag != nil && len(field.Tag.Value) > 1 {
 		tag := reflect.StructTag(field.Tag.Value[1 : len(field.Tag.Value)-1])
+
 		return strings.Split(tag.Get("di"), ",")
 	}
 
 	return nil
+}
+
+func parseContainerField(field *ast.Field) (*ast.StructType, error) {
+	fieldDeclaration, ok := field.Names[0].Obj.Decl.(*ast.Field)
+	if !ok {
+		return nil, errors.Wrap(ErrParsing, "unexpected field declaration")
+	}
+	containerPointer, ok := fieldDeclaration.Type.(*ast.StarExpr)
+	if !ok {
+		return nil, errors.Wrap(ErrParsing, "container type must be pointer")
+	}
+	containerType, ok := containerPointer.X.(*ast.Ident)
+	if !ok {
+		return nil, errors.Wrap(ErrParsing, "unexpected container declaration")
+	}
+	typeSpecification, ok := containerType.Obj.Decl.(*ast.TypeSpec)
+	if !ok {
+		return nil, errors.Wrap(ErrParsing, "unexpected container type specification")
+	}
+	container, ok := typeSpecification.Type.(*ast.StructType)
+	if !ok {
+		return nil, errors.Wrap(ErrParsing, "container type must be struct")
+	}
+
+	return container, nil
 }
 
 func parseFactoryAST(file *ast.File) (*FactoryFile, error) {
@@ -252,4 +338,28 @@ func parseFactoryAST(file *ast.File) (*FactoryFile, error) {
 	}
 
 	return factory, nil
+}
+
+func validateInternalContainer(container *ast.StructType) error {
+	if len(container.Fields.List) == 0 {
+		return errors.Wrap(ErrInvalidDefinition, "container must not be empty")
+	}
+	field := container.Fields.List[0]
+
+	containerPointer, ok := field.Type.(*ast.StarExpr)
+	if !ok {
+		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
+	}
+	rootContainer, ok := containerPointer.X.(*ast.Ident)
+	if !ok {
+		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
+	}
+	if rootContainer.Name != "Container" {
+		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
+	}
+	if len(field.Names) > 0 {
+		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
+	}
+
+	return nil
 }

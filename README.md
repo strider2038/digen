@@ -16,7 +16,8 @@ Project is under development
 * [x] definitions generator
 * [ ] definitions updater
 * [ ] apply gofmt
-* [ ] handle multiple containers
+* [x] handle multiple containers
+* [ ] definitions for multiple containers
 * [ ] better console output via logger
 * [ ] generate external services
 * [ ] prompt for init (set work_dir, write first config)

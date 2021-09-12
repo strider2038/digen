@@ -57,6 +57,10 @@ func (b *FileBuilder) WriteString(s string) (n int, err error) {
 	return b.body.WriteString(s)
 }
 
+func (b *FileBuilder) IsEmpty() bool {
+	return b.body.Len() == 0
+}
+
 func (b *FileBuilder) GetFile() *File {
 	var buffer bytes.Buffer
 

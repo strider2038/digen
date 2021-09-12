@@ -8,6 +8,7 @@ var (
 	ErrNotSupported      = errors.New("not supported")
 	ErrParsing           = errors.New("parsing error")
 	ErrFileAlreadyExists = errors.New("file already exists")
+	ErrInvalidDefinition = errors.New("invalid definition")
 
 	errFileIgnored   = errors.New("file ignored")
 	errMissingModule = errors.New("cannot detect module from go.mod")
