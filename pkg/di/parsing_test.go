@@ -1,11 +1,11 @@
-package digen_test
+package di_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/strider2038/digen"
+	"github.com/strider2038/digen/pkg/di"
 )
 
 const testContainerSource = `
@@ -59,7 +59,7 @@ func CreateHandler(c Container) *httpadapter.GetEntityHandler {
 `
 
 func TestParseContainerFromSource(t *testing.T) {
-	container, err := digen.ParseContainerFromSource(testContainerSource)
+	container, err := di.ParseContainerFromSource(testContainerSource)
 
 	require.NoError(t, err)
 	require.NotNil(t, container)
@@ -71,7 +71,7 @@ func TestParseContainerFromSource(t *testing.T) {
 }
 
 func TestParseFactoryFromSource(t *testing.T) {
-	factory, err := digen.ParseFactoryFromSource(testFactorySource)
+	factory, err := di.ParseFactoryFromSource(testFactorySource)
 
 	require.NoError(t, err)
 	require.NotNil(t, factory)
@@ -84,7 +84,7 @@ func TestParseFactoryFromSource(t *testing.T) {
 	assert.Contains(t, factory.Services, "Handler")
 }
 
-func assertExpectedContainerImports(t *testing.T, imports map[string]*digen.ImportDefinition) {
+func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportDefinition) {
 	if assert.NotNil(t, imports["usecase"]) {
 		assert.Equal(t, "usecase", imports["usecase"].ID)
 		assert.Equal(t, "", imports["usecase"].Name)
@@ -110,7 +110,7 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*digen.Impo
 	}
 }
 
-func assertExpectedContainerServices(t *testing.T, services []*digen.ServiceDefinition) {
+func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
 	if assert.Len(t, services, 3) {
 		assert.Equal(t, "configuration", services[0].Name)
 		assert.Equal(t, "config", services[0].Type.Package)
@@ -144,7 +144,7 @@ func assertExpectedContainerServices(t *testing.T, services []*digen.ServiceDefi
 	}
 }
 
-func assertExpectedInternalContainers(t *testing.T, containers []*digen.ContainerDefinition) {
+func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {
 	if !assert.Len(t, containers, 1) {
 		return
 	}

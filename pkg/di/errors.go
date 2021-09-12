@@ -1,4 +1,4 @@
-package digen
+package di
 
 import "errors"
 
@@ -10,6 +10,5 @@ var (
 	ErrFileAlreadyExists = errors.New("file already exists")
 	ErrInvalidDefinition = errors.New("invalid definition")
 
-	errFileIgnored   = errors.New("file ignored")
 	errMissingModule = errors.New("cannot detect module from go.mod")
 )

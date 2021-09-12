@@ -15,10 +15,11 @@ Project is under development
 * [x] remove unnecessary imports
 * [x] definitions generator
 * [ ] definitions updater
-* [ ] apply gofmt
+* [ ] ability to choose specific file for definition
 * [x] handle multiple containers
-* [ ] definitions for multiple containers
-* [ ] better console output via logger
+* [x] better console output via logger
+* [x] definitions for multiple containers
+* [ ] apply gofmt
 * [ ] generate external services
 * [ ] prompt for init (set work_dir, write first config)
 * [ ] custom close functions

@@ -1,4 +1,4 @@
-package digen
+package di
 
 import (
 	"os"

@@ -1,4 +1,4 @@
-package digen
+package di
 
 import (
 	"bytes"
@@ -40,11 +40,9 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
-	if !g.isDefinitionsFileExist() {
-		err = g.generateDefinitionsFile(container)
-		if err != nil {
-			return err
-		}
+	err = g.generateDefinitionsFiles(container)
+	if err != nil {
+		return err
 	}
 
 	g.Logger.Success("Generation completed at dir", g.WorkDir)
@@ -130,22 +128,22 @@ func (g *Generator) generateFiles(container *RootContainerDefinition) error {
 	return nil
 }
 
-func (g *Generator) generateDefinitionsFile(container *RootContainerDefinition) error {
-	params := GenerationParameters{
-		RootPackage: g.RootPackage(),
-	}
-	file, err := GenerateFactory(container, params)
+func (g *Generator) generateDefinitionsFiles(container *RootContainerDefinition) error {
+	manager := NewDefinitionsManager(container, g.WorkDir)
+	files, err := manager.Generate()
 	if err != nil {
 		return err
 	}
 
-	writer := NewWriter(g.WorkDir)
-	err = writer.WriteFile(file)
-	if err != nil {
-		return err
-	}
+	for _, file := range files {
+		writer := NewWriter(g.WorkDir)
+		err = writer.WriteFile(file)
+		if err != nil {
+			return err
+		}
 
-	g.Logger.Info("File", file.Name, "generated")
+		g.Logger.Info("Definitions file", file.Name, "generated")
+	}
 
 	return nil
 }

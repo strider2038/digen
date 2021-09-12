@@ -1,4 +1,4 @@
-package digen
+package di
 
 type Logger interface {
 	Info(a ...interface{})
