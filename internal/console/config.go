@@ -3,7 +3,6 @@ package console
 import (
 	"io/fs"
 	"os"
-	"strings"
 
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
@@ -30,7 +29,7 @@ func initConfig(config *viper.Viper) error {
 	prompt := promptui.Prompt{
 		Label: "Enter path to work directory",
 		Validate: func(path string) error {
-			if fs.ValidPath(path) || fs.ValidPath(strings.TrimLeft(path, "./")) {
+			if fs.ValidPath(path) {
 				return nil
 			}
 
