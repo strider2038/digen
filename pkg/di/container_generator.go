@@ -2,6 +2,7 @@ package di
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -97,6 +98,7 @@ func (g *ContainerGenerator) writeServiceGetters(services []*ServiceDefinition, 
 
 		parameters := templateParameters{
 			ContainerName: containerName,
+			ServicePrefix: strings.Title(service.Prefix),
 			ServiceName:   service.Name,
 			ServiceTitle:  service.Title(),
 			ServiceType:   service.Type.String(),

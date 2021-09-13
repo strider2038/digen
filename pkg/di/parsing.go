@@ -160,7 +160,7 @@ func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
 		return nil, err
 	}
 
-	definition.Services, err = createContainerServiceDefinitions(container)
+	definition.Services, err = createContainerServiceDefinitions(container, definition.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
 	return definition, nil
 }
 
-func createContainerServiceDefinitions(container *ast.StructType) ([]*ServiceDefinition, error) {
+func createContainerServiceDefinitions(container *ast.StructType, path string) ([]*ServiceDefinition, error) {
 	services := make([]*ServiceDefinition, 0)
 	err := validateInternalContainer(container)
 	if err != nil {
@@ -191,6 +191,7 @@ func createContainerServiceDefinitions(container *ast.StructType) ([]*ServiceDef
 		}
 
 		service := newServiceDefinition(parseFieldName(field), fieldType, tags)
+		service.Prefix = path
 		services = append(services, service)
 	}
 

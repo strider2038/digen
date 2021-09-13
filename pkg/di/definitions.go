@@ -33,8 +33,9 @@ func (d ImportDefinition) String() string {
 }
 
 type ServiceDefinition struct {
-	Name string
-	Type TypeDefinition
+	Prefix string
+	Name   string
+	Type   TypeDefinition
 
 	HasSetter  bool // "set" tag - will generate setters for internal and public containers
 	HasCloser  bool // "close" tag - generate closer method call

@@ -1,30 +1,20 @@
 package console
 
 import (
-	"github.com/pkg/errors"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
 	"github.com/strider2038/digen/pkg/di"
 )
 
-func newGenerator(options *Options) (*di.Generator, error) {
-	v := viper.New()
-	v.SetConfigName("digen")
-	v.SetConfigType("yaml")
-	v.AddConfigPath(".")
-	err := v.ReadInConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read config")
-	}
-
-	config := &di.Generator{
-		WorkDir:   v.GetString("work_dir"),
+func newGenerator(options *Options, config *viper.Viper) (*di.Generator, error) {
+	generator := &di.Generator{
+		WorkDir:   config.GetString("work_dir"),
 		Version:   options.Version,
 		BuildTime: options.BuildTime,
 		Logger:    terminalLogger{},
 	}
 
-	return config, nil
+	return generator, nil
 }
 
 type terminalLogger struct{}

@@ -4,6 +4,7 @@ import "text/template"
 
 type templateParameters struct {
 	ContainerName string
+	ServicePrefix string
 	ServicePath   string
 	ServiceName   string
 	ServiceTitle  string
@@ -34,7 +35,7 @@ var headingTemplate = template.Must(template.New("heading").Parse(`// Code gener
 var getterTemplate = template.Must(template.New("getter").Parse(`
 func (c *{{.ContainerName}}) {{.ServiceTitle}}() {{.ServiceType}} {
 {{ if .HasDefinition }}	if c.{{.ServiceName}} == nil {
-		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServiceTitle}}(c){{ end }}
+		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServicePrefix}}{{.ServiceTitle}}(c){{ end }}
 	}
 {{ end }}	return c.{{.ServiceName}}
 }
@@ -58,8 +59,8 @@ var closerTemplate = template.Must(template.New("closer").Parse(`
 	}
 `))
 
-var factoryTemplate = template.Must(template.New("factory").Parse(`
-func Create{{.ServiceTitle}}(c Container) {{.ServiceType}} {
+var definitionTemplate = template.Must(template.New("factory").Parse(`
+func Create{{.ServicePrefix}}{{.ServiceTitle}}(c Container) {{.ServiceType}} {
 	panic("not implemented")
 }
 `))

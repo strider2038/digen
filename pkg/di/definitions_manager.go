@@ -2,6 +2,7 @@ package di
 
 import (
 	"os"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
@@ -34,9 +35,10 @@ func (m *DefinitionsManager) Generate() ([]*File, error) {
 		for _, service := range services {
 			file.AddImport(m.container.GetImport(service))
 
-			err := factoryTemplate.Execute(file, templateParameters{
-				ServiceTitle: service.Title(),
-				ServiceType:  service.Type.String(),
+			err := definitionTemplate.Execute(file, templateParameters{
+				ServicePrefix: strings.Title(service.Prefix),
+				ServiceTitle:  service.Title(),
+				ServiceType:   service.Type.String(),
 			})
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to generate factory for %s", service.Name)

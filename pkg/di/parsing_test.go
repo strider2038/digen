@@ -157,6 +157,7 @@ func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDe
 	assert.Equal(t, "findEntity", services[0].Name)
 	assert.Equal(t, "usecase", services[0].Type.Package)
 	assert.Equal(t, "FindEntity", services[0].Type.Name)
+	assert.Equal(t, "useCase", services[0].Prefix)
 	assert.True(t, services[0].Type.IsPointer)
 	assert.False(t, services[0].HasSetter)
 	assert.False(t, services[0].HasCloser)

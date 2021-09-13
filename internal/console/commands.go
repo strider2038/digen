@@ -3,6 +3,7 @@ package console
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -49,12 +50,7 @@ func newInitCommand(options *Options) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			generator, err := newGenerator(options)
-			if err != nil {
-				return err
-			}
-
-			return generator.Initialize()
+			return runInit(options)
 		},
 	}
 }
@@ -66,7 +62,13 @@ func newGenerateCommand(options *Options) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			generator, err := newGenerator(options)
+			config := newConfig()
+			err := config.ReadInConfig()
+			if err != nil {
+				return errors.Wrap(err, "failed to read config")
+			}
+
+			generator, err := newGenerator(options, config)
 			if err != nil {
 				return err
 			}
