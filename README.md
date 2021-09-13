@@ -89,6 +89,7 @@ func (c *Container) SetError(err error) {
 * [x] unique names for separate container definitions
 * [x] prompt for init (set work_dir, write first config)
 * [ ] definitions updater
+* [ ] ability to set definition name
 * [ ] ability to choose specific file for definition
 * [ ] apply gofmt
 * [ ] generate external services

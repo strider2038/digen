@@ -100,7 +100,7 @@ type Injector func(c *Container) error
 func NewContainer({{.ContainerArguments}}) (*Container, error) {
 	c := &Container{
 		mu: &sync.Mutex{},
-		c:  &internal.Container{},
+		c:  internal.NewContainer(),
 	}
 {{.ContainerArgumentSetters}}
 	for _, inject := range injectors {
