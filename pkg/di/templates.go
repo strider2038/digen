@@ -13,6 +13,11 @@ type templateParameters struct {
 	PanicOnNil    bool
 }
 
+type internalContainerTemplateParameters struct {
+	ContainerBody        string
+	ContainerConstructor string
+}
+
 type containerTemplateParameters struct {
 	ContainerArguments       string
 	ContainerArgumentSetters string
@@ -32,6 +37,31 @@ var headingTemplate = template.Must(template.New("heading").Parse(`// Code gener
 
 `))
 
+var internalContainerTemplate = template.Must(template.New("internal container").Parse(`
+type Container struct {
+	err error
+{{.ContainerBody}}
+}
+
+func NewContainer() *Container {
+	c := &Container{}
+{{.ContainerConstructor}}
+	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
+}
+`))
+
 var getterTemplate = template.Must(template.New("getter").Parse(`
 func (c *{{.ContainerName}}) {{.ServiceTitle}}() {{.ServiceType}} {
 {{ if .HasDefinition }}	if c.{{.ServiceName}} == nil {
@@ -41,7 +71,7 @@ func (c *{{.ContainerName}}) {{.ServiceTitle}}() {{.ServiceType}} {
 }
 `))
 
-var attachedContainerGetterTemplate = template.Must(template.New("internal container getter").Parse(`
+var separateContainerGetterTemplate = template.Must(template.New("internal container getter").Parse(`
 func (c *{{.ContainerName}}) {{.AttachedContainerTitle}}() {{.AttachedContainerDefinitionType}} {
 	return c.{{.AttachedContainerName}}
 }
@@ -65,28 +95,23 @@ func Create{{.ServicePrefix}}{{.ServiceTitle}}(c Container) {{.ServiceType}} {
 }
 `))
 
-var internalContainerTemplate = template.Must(template.New("internal container").Parse(`package internal
+var configFileTemplate = template.Must(template.New("internal container").Parse(`package internal
 
+// Container is a root dependency injection container. It is required to describe
+// your services.
 type Container struct {
-	// err holds first initialization error
-	err error
-
 	// put the list of your services here
 	// for example
 	//  log *log.Logger
+
+	// also, you can describe your services in a separate container
+	// repositories RepositoryContainer
 }
 
-// Error returns first initialization error, which can be set via SetError in service definition.
-func (c *Container) Error() error {
-	return c.err
-}
-
-// SetError set first error into container. It is used in public container to return initialization error.
-func (c *Container) SetError(err error) {
-	if err != nil && c.err != nil {
-		c.err = err
-	}
-}
+// this is a separate container
+// type RepositoryContainer {
+// 	entityRepository domain.EntityRepository
+// }
 `))
 
 var publicContainerTemplate = template.Must(template.New("public container").Parse(`

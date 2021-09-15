@@ -19,18 +19,14 @@ import (
 )
 
 type Container struct {
-	err error
-
 	configuration    config.Configuration
 	entityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
 	handler          *httpadapter.GetEntityHandler
 
-	useCase *UseCaseContainer ` + "`di:\"container\"`" + `
+	useCase UseCaseContainer
 }
 
 type UseCaseContainer struct {
-	*Container
-
 	findEntity *usecase.FindEntity
 }
 `

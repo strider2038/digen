@@ -1,6 +1,7 @@
 package di
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -18,13 +19,14 @@ func NewContainerGenerator(container *RootContainerDefinition, params Generation
 	return &ContainerGenerator{
 		container: container,
 		params:    params,
-		file:      NewFileBuilder("generated.go", container.Package, InternalPackage),
+		file:      NewFileBuilder("container.go", container.Package, InternalPackage),
 	}
 }
 
 func (g *ContainerGenerator) Generate() (*File, error) {
 	generators := [...]func() error{
-		g.generateConstructor,
+		g.generateRootContainer,
+		g.generateContainers,
 		g.generateGetters,
 		g.generateSetters,
 		g.generateClosers,
@@ -40,16 +42,46 @@ func (g *ContainerGenerator) Generate() (*File, error) {
 	return g.file.GetFile(), nil
 }
 
-func (g *ContainerGenerator) generateConstructor() error {
-	g.writeLine("\nfunc NewContainer() *Container {")
-	g.writeLine("\tc := &Container{}")
-
-	for _, definition := range g.container.Containers {
-		g.writeLine(fmt.Sprintf("\tc.%s = &%s{Container: c}", definition.Name, definition.Type.Name))
+func (g *ContainerGenerator) generateRootContainer() error {
+	var body bytes.Buffer
+	for _, service := range g.container.Services {
+		g.importService(service)
+		body.WriteString(fmt.Sprintf("\n\t%s %s", service.Name, service.Type.String()))
 	}
 
-	g.writeLine("\n\treturn c")
-	g.writeLine("}")
+	if len(g.container.Containers) > 0 {
+		body.WriteString("\n")
+	}
+
+	var constructor bytes.Buffer
+	for _, container := range g.container.Containers {
+		body.WriteString(fmt.Sprintf("\n\t%s *%s", container.Name, container.Type.Name))
+		constructor.WriteString(fmt.Sprintf("\tc.%s = &%s{Container: c}\n", container.Name, container.Type.Name))
+	}
+
+	err := internalContainerTemplate.Execute(g.file, internalContainerTemplateParameters{
+		ContainerBody:        body.String(),
+		ContainerConstructor: constructor.String(),
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate root container")
+	}
+
+	return nil
+}
+
+func (g *ContainerGenerator) generateContainers() error {
+	for _, container := range g.container.Containers {
+		g.writeLine(fmt.Sprintf("\ntype %s struct {", container.Type.Name))
+		g.writeLine("\t*Container\n")
+
+		for _, service := range container.Services {
+			g.importService(service)
+			g.writeLine(fmt.Sprintf("\t%s %s", service.Name, service.Type.String()))
+		}
+
+		g.writeLine("}")
+	}
 
 	return nil
 }
@@ -84,7 +116,7 @@ func (g *ContainerGenerator) writeContainerGetter(container *ContainerDefinition
 		AttachedContainerTitle:          container.Title(),
 		AttachedContainerDefinitionType: "definitions." + container.Type.Name,
 	}
-	err := attachedContainerGetterTemplate.Execute(g.file, parameters)
+	err := separateContainerGetterTemplate.Execute(g.file, parameters)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate getter for container %s", container.Name)
 	}

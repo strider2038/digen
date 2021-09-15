@@ -127,20 +127,31 @@ func createDefinitions(container *ast.StructType) ([]*ServiceDefinition, []*Cont
 			continue
 		}
 
-		tags := parseFieldTags(field)
-		if tags.Contains("container") {
+		if isContainerDefinition(field) {
 			internalContainer, err := createContainerDefinition(field)
 			if err != nil {
 				return nil, nil, err
 			}
 			containers = append(containers, internalContainer)
 		} else {
-			service := newServiceDefinition(parseFieldName(field), fieldType, tags)
+			service := newServiceDefinition(field, fieldType)
 			services = append(services, service)
 		}
 	}
 
 	return services, containers, nil
+}
+
+func isContainerDefinition(field *ast.Field) bool {
+	if id, ok := field.Type.(*ast.Ident); ok {
+		if t, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
+			_, ok := t.Type.(*ast.StructType)
+
+			return ok
+		}
+	}
+
+	return false
 }
 
 func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
@@ -175,22 +186,17 @@ func createContainerServiceDefinitions(container *ast.StructType, path string) (
 		return nil, err
 	}
 
-	for i, field := range container.Fields.List {
-		if i == 0 {
-			continue
-		}
-
+	for _, field := range container.Fields.List {
 		fieldType, err := parseFieldType(field)
 		if err != nil {
 			return nil, err
 		}
 
-		tags := parseFieldTags(field)
-		if tags.Contains("container") {
+		if isContainerDefinition(field) {
 			return nil, errors.Wrap(ErrNotSupported, "container inside container")
 		}
 
-		service := newServiceDefinition(parseFieldName(field), fieldType, tags)
+		service := newServiceDefinition(field, fieldType)
 		service.Prefix = path
 		services = append(services, service)
 	}
@@ -299,11 +305,7 @@ func parseContainerField(field *ast.Field) (*ast.StructType, error) {
 	if !ok {
 		return nil, errors.Wrap(ErrParsing, "unexpected field declaration")
 	}
-	containerPointer, ok := fieldDeclaration.Type.(*ast.StarExpr)
-	if !ok {
-		return nil, errors.Wrap(ErrParsing, "container type must be pointer")
-	}
-	containerType, ok := containerPointer.X.(*ast.Ident)
+	containerType, ok := fieldDeclaration.Type.(*ast.Ident)
 	if !ok {
 		return nil, errors.Wrap(ErrParsing, "unexpected container declaration")
 	}
@@ -344,22 +346,6 @@ func parseFactoryAST(file *ast.File) (*FactoryFile, error) {
 func validateInternalContainer(container *ast.StructType) error {
 	if len(container.Fields.List) == 0 {
 		return errors.Wrap(ErrInvalidDefinition, "container must not be empty")
-	}
-	field := container.Fields.List[0]
-
-	containerPointer, ok := field.Type.(*ast.StarExpr)
-	if !ok {
-		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
-	}
-	rootContainer, ok := containerPointer.X.(*ast.Ident)
-	if !ok {
-		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
-	}
-	if rootContainer.Name != "Container" {
-		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
-	}
-	if len(field.Names) > 0 {
-		return errors.Wrap(ErrInvalidDefinition, "internal container must embed root container as a pointer in the first field")
 	}
 
 	return nil

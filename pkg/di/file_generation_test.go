@@ -40,8 +40,8 @@ func TestGenerate(t *testing.T) {
 
 				require.Len(t, files, 3)
 				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, "generated.go", files[0].Name)
-				assert.Equal(t, singleContainerWithGettersOnlyGeneratedFile, string(files[0].Content))
+				assert.Equal(t, "container.go", files[0].Name)
+				assert.Equal(t, singleContainerWithGettersOnlyInternalContainer, string(files[0].Content))
 				assert.Equal(t, di.DefinitionsPackage, files[1].Package)
 				assert.Equal(t, "contracts.go", files[1].Name)
 				assert.Equal(t, singleContainerWithGettersOnlyDefinitionContracts, string(files[1].Content))
@@ -76,8 +76,8 @@ func TestGenerate(t *testing.T) {
 
 				require.GreaterOrEqual(t, len(files), 3)
 				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, "generated.go", files[0].Name)
-				assert.Equal(t, singleContainerWithServiceSetterGeneratedFile, string(files[0].Content))
+				assert.Equal(t, "container.go", files[0].Name)
+				assert.Equal(t, singleContainerWithServiceSetterInternalContainer, string(files[0].Content))
 				assert.Equal(t, di.PublicPackage, files[2].Package)
 				assert.Equal(t, "container.go", files[2].Name)
 				assert.Equal(t, singleContainerWithServiceSetterPublicContainer, string(files[2].Content))
@@ -108,7 +108,7 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.GreaterOrEqual(t, len(files), 3)
-				assert.Equal(t, singleContainerWithRequiredServiceGeneratedFile, string(files[0].Content))
+				assert.Equal(t, singleContainerWithRequiredServiceInternalContainer, string(files[0].Content))
 				assert.Equal(t, publicContainerWithRequirementFile, string(files[2].Content))
 			},
 		},
@@ -137,7 +137,7 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.GreaterOrEqual(t, len(files), 1)
-				assert.Equal(t, singleContainerWithExternalServiceGeneratedFile, string(files[0].Content))
+				assert.Equal(t, singleContainerWithExternalServiceInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -163,7 +163,7 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.GreaterOrEqual(t, len(files), 1)
-				assert.Equal(t, singleContainerWithStaticTypeGeneratedFile, string(files[0].Content))
+				assert.Equal(t, singleContainerWithStaticTypeInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -190,7 +190,7 @@ func TestGenerate(t *testing.T) {
 
 				require.Greater(t, len(files), 1)
 				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, singleContainerWithCloserGeneratedFile, string(files[0].Content))
+				assert.Equal(t, singleContainerWithCloserInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -226,7 +226,7 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.Greater(t, len(files), 1)
-				assert.Equal(t, twoServicesFromOnePackageGeneratedFile, string(files[0].Content))
+				assert.Equal(t, twoServicesFromOnePackageInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -283,7 +283,7 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.GreaterOrEqual(t, len(files), 3)
-				assert.Equal(t, separateContainerGeneratedFile, string(files[0].Content))
+				assert.Equal(t, separateContainerInternalContainer, string(files[0].Content))
 				assert.Equal(t, separateContainerDefinitionsContractsFile, string(files[1].Content))
 				assert.Equal(t, separateContainerPublicFile, string(files[2].Content))
 			},
@@ -301,17 +301,35 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-const singleContainerWithGettersOnlyGeneratedFile = `package testpkg
+const singleContainerWithGettersOnlyInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
 
+type Container struct {
+	err error
+
+	serviceName *domain.Service
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) ServiceName() *domain.Service {
@@ -331,6 +349,7 @@ import (
 )
 
 type Container interface {
+	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
 	SetError(err error)
 
 	ServiceName() *domain.Service
@@ -355,7 +374,7 @@ type Injector func(c *Container) error
 func NewContainer(injectors ...Injector) (*Container, error) {
 	c := &Container{
 		mu: &sync.Mutex{},
-		c:  &internal.Container{},
+		c:  internal.NewContainer(),
 	}
 
 	for _, inject := range injectors {
@@ -389,17 +408,35 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithServiceSetterGeneratedFile = `package testpkg
+const singleContainerWithServiceSetterInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
 
+type Container struct {
+	err error
+
+	serviceName *domain.Service
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) ServiceName() *domain.Service {
@@ -434,7 +471,7 @@ type Injector func(c *Container) error
 func NewContainer(injectors ...Injector) (*Container, error) {
 	c := &Container{
 		mu: &sync.Mutex{},
-		c:  &internal.Container{},
+		c:  internal.NewContainer(),
 	}
 
 	for _, inject := range injectors {
@@ -462,16 +499,34 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithRequiredServiceGeneratedFile = `package testpkg
+const singleContainerWithRequiredServiceInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 )
 
+type Container struct {
+	err error
+
+	serviceName *domain.Service
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) ServiceName() *domain.Service {
@@ -506,7 +561,7 @@ func NewContainer(
 ) (*Container, error) {
 	c := &Container{
 		mu: &sync.Mutex{},
-		c:  &internal.Container{},
+		c:  internal.NewContainer(),
 	}
 
 	c.c.SetServiceName(serviceName)
@@ -529,16 +584,34 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithExternalServiceGeneratedFile = `package testpkg
+const singleContainerWithExternalServiceInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 )
 
+type Container struct {
+	err error
+
+	serviceName *domain.Service
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) ServiceName() *domain.Service {
@@ -555,16 +628,34 @@ func (c *Container) SetServiceName(s *domain.Service) {
 func (c *Container) Close() {}
 `
 
-const singleContainerWithStaticTypeGeneratedFile = `package testpkg
+const singleContainerWithStaticTypeInternalContainer = `package testpkg
 
 import (
 	"example.com/test/di/config"
 )
 
+type Container struct {
+	err error
+
+	configuration config.Configuration
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) Configuration() config.Configuration {
@@ -578,17 +669,35 @@ func (c *Container) SetConfiguration(s config.Configuration) {
 func (c *Container) Close() {}
 `
 
-const singleContainerWithCloserGeneratedFile = `package testpkg
+const singleContainerWithCloserInternalContainer = `package testpkg
 
 import (
 	"example.com/test/sql"
 	"example.com/test/di/internal/definitions"
 )
 
+type Container struct {
+	err error
+
+	connection sql.Connection
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) Connection() sql.Connection {
@@ -605,17 +714,36 @@ func (c *Container) Close() {
 }
 `
 
-const twoServicesFromOnePackageGeneratedFile = `package testpkg
+const twoServicesFromOnePackageInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
 
+type Container struct {
+	err error
+
+	firstService *domain.Service
+	secondService *domain.Service
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
 }
 
 func (c *Container) FirstService() *domain.Service {
@@ -635,18 +763,45 @@ func (c *Container) SecondService() *domain.Service {
 func (c *Container) Close() {}
 `
 
-const separateContainerGeneratedFile = `package testpkg
+const separateContainerInternalContainer = `package testpkg
 
 import (
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
 
+type Container struct {
+	err error
+
+	topService *domain.Service
+
+	internalContainerName *InternalContainerType
+}
+
 func NewContainer() *Container {
 	c := &Container{}
 	c.internalContainerName = &InternalContainerType{Container: c}
 
 	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err != nil {
+		c.err = err
+	}
+}
+
+type InternalContainerType struct {
+	*Container
+
+	firstService *domain.Service
+	secondService *domain.Service
 }
 
 func (c *Container) TopService() *domain.Service {
@@ -692,6 +847,7 @@ import (
 )
 
 type Container interface {
+	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
 	SetError(err error)
 
 	TopService() *domain.Service
@@ -723,7 +879,7 @@ type Injector func(c *Container) error
 func NewContainer(injectors ...Injector) (*Container, error) {
 	c := &Container{
 		mu: &sync.Mutex{},
-		c:  &internal.Container{},
+		c:  internal.NewContainer(),
 	}
 
 	for _, inject := range injectors {

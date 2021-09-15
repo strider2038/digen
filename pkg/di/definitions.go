@@ -1,6 +1,9 @@
 package di
 
-import "strings"
+import (
+	"go/ast"
+	"strings"
+)
 
 type RootContainerDefinition struct {
 	Name       string
@@ -48,7 +51,10 @@ func (s ServiceDefinition) Title() string {
 	return strings.Title(s.Name)
 }
 
-func newServiceDefinition(name string, typeDef TypeDefinition, tags []string) *ServiceDefinition {
+func newServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefinition {
+	name := parseFieldName(field)
+	tags := parseFieldTags(field)
+
 	definition := &ServiceDefinition{Name: name, Type: typeDef}
 
 	for _, tag := range tags {

@@ -56,14 +56,14 @@ func GenerateFiles(container *RootContainerDefinition, params GenerationParamete
 func GenerateContainerFile(params GenerationParameters) (*File, error) {
 	var buffer bytes.Buffer
 
-	err := internalContainerTemplate.Execute(&buffer, nil)
+	err := configFileTemplate.Execute(&buffer, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to generate internal container")
 	}
 
 	return &File{
 		Package: InternalPackage,
-		Name:    "container.go",
+		Name:    "_config.go",
 		Content: buffer.Bytes(),
 	}, nil
 }
@@ -72,6 +72,7 @@ func generateDefinitionsContractsFile(container *RootContainerDefinition, params
 	file := NewFileBuilder("contracts.go", "definitions", DefinitionsPackage)
 
 	file.WriteString("\ntype Container interface {\n")
+	file.WriteString("\t// SetError sets the first error into container. The error is used in the public container to return an initialization error.\n")
 	file.WriteString("\tSetError(err error)\n\n")
 	for _, service := range container.Services {
 		file.AddImport(container.GetImport(service))

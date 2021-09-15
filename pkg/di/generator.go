@@ -79,7 +79,7 @@ func (g *Generator) init() error {
 		g.WorkDir = "."
 	}
 	if g.ContainerFilename == "" {
-		g.ContainerFilename = g.WorkDir + "/internal/container.go"
+		g.ContainerFilename = g.WorkDir + "/internal/_config.go"
 	}
 
 	mod, err := os.ReadFile("go.mod")
