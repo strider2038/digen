@@ -73,14 +73,15 @@ type RepositoryContainer struct {
 * [x] unique names for separate container definitions
 * [x] prompt for init (set work_dir, write first config)
 * [x] better generation with `_config.go` file
+* [x] apply gofmt
 * [ ] move contracts into separate package
 * [ ] definitions updater
 * [ ] ability to set definition name
 * [ ] ability to choose specific file for definition
-* [x] apply gofmt
-* [ ] generate external services
+* [ ] generate external services (?)
 * [ ] custom close functions
-* [ ] custom container name
 * [ ] write doc
 * [ ] force variable name uniqueness
-* [ ] don't check for nil on static structs (not so simple, may be option via tag `static`?)
+* [ ] don't check for nil on static structs
+  * not so simple, may be option via tag `static`?
+  * generate bool var for checking service init
