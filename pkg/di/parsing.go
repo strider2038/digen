@@ -144,10 +144,12 @@ func createDefinitions(container *ast.StructType) ([]*ServiceDefinition, []*Cont
 
 func isContainerDefinition(field *ast.Field) bool {
 	if id, ok := field.Type.(*ast.Ident); ok {
-		if t, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
-			_, ok := t.Type.(*ast.StructType)
+		if id.Obj != nil {
+			if t, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
+				_, ok := t.Type.(*ast.StructType)
 
-			return ok
+				return ok
+			}
 		}
 	}
 
