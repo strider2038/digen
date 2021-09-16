@@ -251,9 +251,9 @@ func TestGenerate(t *testing.T) {
 					{
 						Name: "internalContainerName",
 						Type: di.TypeDefinition{
-							IsPointer: true,
-							Package:   "testpkg",
-							Name:      "InternalContainerType",
+							// IsPointer: true,
+							Package: "testpkg",
+							Name:    "InternalContainerType",
 						},
 						Services: []*di.ServiceDefinition{
 							{
@@ -304,6 +304,7 @@ func TestGenerate(t *testing.T) {
 const singleContainerWithGettersOnlyInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
@@ -332,9 +333,9 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) ServiceName() *domain.Service {
+func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if c.serviceName == nil {
-		c.serviceName = definitions.CreateServiceName(c)
+		c.serviceName = definitions.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
 }
@@ -345,6 +346,7 @@ func (c *Container) Close() {}
 const singleContainerWithGettersOnlyDefinitionContracts = `package definitions
 
 import (
+	"context"
 	"example.com/test/domain"
 )
 
@@ -352,7 +354,7 @@ type Container interface {
 	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
 	SetError(err error)
 
-	ServiceName() *domain.Service
+	ServiceName(ctx context.Context) *domain.Service
 }
 `
 
@@ -361,6 +363,7 @@ const singleContainerWithGettersOnlyPublicFile = `package di
 import (
 	"sync"
 	"example.com/test/di/internal"
+	"context"
 	"example.com/test/domain"
 )
 
@@ -387,11 +390,11 @@ func NewContainer(injectors ...Injector) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) ServiceName() (*domain.Service, error) {
+func (c *Container) ServiceName(ctx context.Context) (*domain.Service, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := c.c.ServiceName()
+	s := c.c.ServiceName(ctx)
 	err := c.c.Error()
 	if err != nil {
 		return nil, err
@@ -411,6 +414,7 @@ func (c *Container) Close() {
 const singleContainerWithServiceSetterInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
@@ -439,9 +443,9 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) ServiceName() *domain.Service {
+func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if c.serviceName == nil {
-		c.serviceName = definitions.CreateServiceName(c)
+		c.serviceName = definitions.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
 }
@@ -484,11 +488,12 @@ func NewContainer(injectors ...Injector) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) SetServiceName(s *domain.Service) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func SetServiceName(s *domain.Service) Injector {
+	return func(c *Container) error {
+		c.c.SetServiceName(s)
 
-	c.c.SetServiceName(s)
+		return nil
+	}
 }
 
 func (c *Container) Close() {
@@ -502,6 +507,7 @@ func (c *Container) Close() {
 const singleContainerWithRequiredServiceInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 )
 
@@ -529,7 +535,7 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) ServiceName() *domain.Service {
+func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	return c.serviceName
 }
 
@@ -587,6 +593,7 @@ func (c *Container) Close() {
 const singleContainerWithExternalServiceInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 )
 
@@ -614,7 +621,7 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) ServiceName() *domain.Service {
+func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if c.serviceName == nil {
 		panic("missing ServiceName")
 	}
@@ -631,6 +638,7 @@ func (c *Container) Close() {}
 const singleContainerWithStaticTypeInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/di/config"
 )
 
@@ -658,7 +666,7 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) Configuration() config.Configuration {
+func (c *Container) Configuration(ctx context.Context) config.Configuration {
 	return c.configuration
 }
 
@@ -672,6 +680,7 @@ func (c *Container) Close() {}
 const singleContainerWithCloserInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/sql"
 	"example.com/test/di/internal/definitions"
 )
@@ -700,9 +709,9 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) Connection() sql.Connection {
+func (c *Container) Connection(ctx context.Context) sql.Connection {
 	if c.connection == nil {
-		c.connection = definitions.CreateConnection(c)
+		c.connection = definitions.CreateConnection(ctx, c)
 	}
 	return c.connection
 }
@@ -717,6 +726,7 @@ func (c *Container) Close() {
 const twoServicesFromOnePackageInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
@@ -746,16 +756,16 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) FirstService() *domain.Service {
+func (c *Container) FirstService(ctx context.Context) *domain.Service {
 	if c.firstService == nil {
-		c.firstService = definitions.CreateFirstService(c)
+		c.firstService = definitions.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
-func (c *Container) SecondService() *domain.Service {
+func (c *Container) SecondService(ctx context.Context) *domain.Service {
 	if c.secondService == nil {
-		c.secondService = definitions.CreateSecondService(c)
+		c.secondService = definitions.CreateSecondService(ctx, c)
 	}
 	return c.secondService
 }
@@ -766,6 +776,7 @@ func (c *Container) Close() {}
 const separateContainerInternalContainer = `package testpkg
 
 import (
+	"context"
 	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
 )
@@ -804,9 +815,9 @@ type InternalContainerType struct {
 	secondService *domain.Service
 }
 
-func (c *Container) TopService() *domain.Service {
+func (c *Container) TopService(ctx context.Context) *domain.Service {
 	if c.topService == nil {
-		c.topService = definitions.CreateTopService(c)
+		c.topService = definitions.CreateTopService(ctx, c)
 	}
 	return c.topService
 }
@@ -815,16 +826,16 @@ func (c *Container) InternalContainerName() definitions.InternalContainerType {
 	return c.internalContainerName
 }
 
-func (c *InternalContainerType) FirstService() *domain.Service {
+func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
 	if c.firstService == nil {
-		c.firstService = definitions.CreateFirstService(c)
+		c.firstService = definitions.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
-func (c *InternalContainerType) SecondService() *domain.Service {
+func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
 	if c.secondService == nil {
-		c.secondService = definitions.CreateSecondService(c)
+		c.secondService = definitions.CreateSecondService(ctx, c)
 	}
 	return c.secondService
 }
@@ -843,6 +854,7 @@ func (c *Container) Close() {
 const separateContainerDefinitionsContractsFile = `package definitions
 
 import (
+	"context"
 	"example.com/test/domain"
 )
 
@@ -850,14 +862,14 @@ type Container interface {
 	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
 	SetError(err error)
 
-	TopService() *domain.Service
+	TopService(ctx context.Context) *domain.Service
 
 	InternalContainerName() InternalContainerType
 }
 
 type InternalContainerType interface {
-	FirstService() *domain.Service
-	SecondService() *domain.Service
+	FirstService(ctx context.Context) *domain.Service
+	SecondService(ctx context.Context) *domain.Service
 }
 `
 
@@ -866,6 +878,7 @@ const separateContainerPublicFile = `package di
 import (
 	"sync"
 	"example.com/test/di/internal"
+	"context"
 	"example.com/test/domain"
 )
 
@@ -892,11 +905,11 @@ func NewContainer(injectors ...Injector) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) FirstService() (*domain.Service, error) {
+func (c *Container) FirstService(ctx context.Context) (*domain.Service, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := c.c.InternalContainerName().(*testpkg.InternalContainerType).FirstService()
+	s := c.c.InternalContainerName().(*testpkg.InternalContainerType).FirstService(ctx)
 	err := c.c.Error()
 	if err != nil {
 		return nil, err
@@ -905,11 +918,12 @@ func (c *Container) FirstService() (*domain.Service, error) {
 	return s, err
 }
 
-func (c *Container) SetSecondService(s *domain.Service) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func SetSecondService(s *domain.Service) Injector {
+	return func(c *Container) error {
+		c.c.InternalContainerName().(*testpkg.InternalContainerType).SetSecondService(s)
 
-	c.c.InternalContainerName().(*testpkg.InternalContainerType).SetSecondService(s)
+		return nil
+	}
 }
 
 func (c *Container) Close() {

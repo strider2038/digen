@@ -43,6 +43,8 @@ func (g *ContainerGenerator) Generate() (*File, error) {
 }
 
 func (g *ContainerGenerator) generateRootContainer() error {
+	g.file.AddImport(`"context"`)
+
 	var body bytes.Buffer
 	for _, service := range g.container.Services {
 		g.importService(service)

@@ -31,6 +31,7 @@ func (m *DefinitionsManager) Generate() ([]*File, error) {
 		}
 
 		file := NewFileBuilder(filename, "definitions", DefinitionsPackage)
+		file.AddImport(`"context"`)
 
 		for _, service := range services {
 			file.AddImport(m.container.GetImport(service))

@@ -63,9 +63,9 @@ func (c *Container) SetError(err error) {
 `))
 
 var getterTemplate = template.Must(template.New("getter").Parse(`
-func (c *{{.ContainerName}}) {{.ServiceTitle}}() {{.ServiceType}} {
+func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) {{.ServiceType}} {
 {{ if .HasDefinition }}	if c.{{.ServiceName}} == nil {
-		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServicePrefix}}{{.ServiceTitle}}(c){{ end }}
+		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx, c){{ end }}
 	}
 {{ end }}	return c.{{.ServiceName}}
 }
@@ -90,7 +90,7 @@ var closerTemplate = template.Must(template.New("closer").Parse(`
 `))
 
 var definitionTemplate = template.Must(template.New("factory").Parse(`
-func Create{{.ServicePrefix}}{{.ServiceTitle}}(c Container) {{.ServiceType}} {
+func Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx context.Context, c Container) {{.ServiceType}} {
 	panic("not implemented")
 }
 `))
@@ -155,11 +155,11 @@ var argumentSetterTemplate = template.Must(template.New("argument setter").Parse
 ))
 
 var publicGetterTemplate = template.Must(template.New("public getter").Parse(`
-func (c *{{.ContainerName}}) {{.ServiceTitle}}() ({{.ServiceType}}, error) {
+func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) ({{.ServiceType}}, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := c.c.{{.ServicePath}}{{.ServiceTitle}}()
+	s := c.c.{{.ServicePath}}{{.ServiceTitle}}(ctx)
 	err := c.c.Error()
 	if err != nil {
 		return nil, err
@@ -170,10 +170,11 @@ func (c *{{.ContainerName}}) {{.ServiceTitle}}() ({{.ServiceType}}, error) {
 `))
 
 var publicSetterTemplate = template.Must(template.New("public setter").Parse(`
-func (c *{{.ContainerName}}) Set{{.ServiceTitle}}(s {{.ServiceType}}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func Set{{.ServiceTitle}}(s {{.ServiceType}}) Injector {
+	return func(c *{{.ContainerName}}) error {
+		c.c.{{.ServicePath}}Set{{.ServiceTitle}}(s)
 
-	c.c.{{.ServicePath}}Set{{.ServiceTitle}}(s)
+		return nil
+	}
 }
 `))

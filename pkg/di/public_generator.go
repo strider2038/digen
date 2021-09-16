@@ -44,6 +44,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 		needsImport := false
 
 		if service.IsPublic {
+			g.file.AddImport(`"context"`)
 			needsImport = true
 			err := publicGetterTemplate.Execute(&g.methods, parameters)
 			if err != nil {
@@ -78,7 +79,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 		for _, service := range attachedContainer.Services {
 			parameters := templateParameters{
 				ContainerName: g.container.Name,
-				ServicePath:   attachedContainer.Title() + "().(" + attachedContainer.Type.String() + ").",
+				ServicePath:   attachedContainer.Title() + "().(*" + attachedContainer.Type.String() + ").",
 				ServiceName:   service.Name,
 				ServiceTitle:  service.Title(),
 				ServiceType:   service.Type.String(),
@@ -87,6 +88,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 			needsImport := false
 
 			if service.IsPublic {
+				g.file.AddImport(`"context"`)
 				needsImport = true
 				err := publicGetterTemplate.Execute(&g.methods, parameters)
 				if err != nil {

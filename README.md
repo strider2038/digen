@@ -32,42 +32,26 @@ For changing service definition behaviour you can use any of the tags.
 * `public` tag - will generate getter for public container
 * `external` tag - no definition, panic if empty, force public setter
 
-Example
+Example of `_config.go`
 
 ```golang
 type Container struct {
-	err error
+    configuration config.Configuration `di:"required"`
+    logger        *log.Logger          `di:"required"`
+    connection    *sql.Conn            `di:"external,close"`
+    
+    handler *httpadapter.GetEntityHandler `di:"public"`
 
-	configuration config.Configuration `di:"required"`
-	logger        *log.Logger          `di:"required"`
-	connection    *sql.Conn            `di:"external,close"`
-
-	handler *httpadapter.GetEntityHandler `di:"public"`
-
-	useCase    *UseCaseContainer    `di:"container"`
-	repository *RepositoryContainer `di:"container"`
+    useCase    UseCaseContainer
+    repository RepositoryContainer
 }
 
 type UseCaseContainer struct {
-	*Container
-
-	findEntity *usecase.FindEntity
+    findEntity *usecase.FindEntity
 }
 
 type RepositoryContainer struct {
-	*Container
-
-	entityRepository domain.EntityRepository `di:"set"`
-}
-
-func (c *Container) Error() error {
-	return c.err
-}
-
-func (c *Container) SetError(err error) {
-	if err != nil && c.err != nil {
-		c.err = err
-	}
+    entityRepository domain.EntityRepository `di:"set"`
 }
 ```
 
