@@ -305,8 +305,8 @@ const singleContainerWithGettersOnlyInternalContainer = `package testpkg
 
 import (
 	"context"
-	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
+	"example.com/test/domain"
 )
 
 type Container struct {
@@ -361,10 +361,10 @@ type Container interface {
 const singleContainerWithGettersOnlyPublicFile = `package di
 
 import (
-	"sync"
-	"example.com/test/di/internal"
 	"context"
+	"example.com/test/di/internal"
 	"example.com/test/domain"
+	"sync"
 )
 
 type Container struct {
@@ -415,8 +415,8 @@ const singleContainerWithServiceSetterInternalContainer = `package testpkg
 
 import (
 	"context"
-	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
+	"example.com/test/domain"
 )
 
 type Container struct {
@@ -460,9 +460,9 @@ func (c *Container) Close() {}
 const singleContainerWithServiceSetterPublicContainer = `package di
 
 import (
-	"sync"
 	"example.com/test/di/internal"
 	"example.com/test/domain"
+	"sync"
 )
 
 type Container struct {
@@ -549,9 +549,9 @@ func (c *Container) Close() {}
 const publicContainerWithRequirementFile = `package di
 
 import (
-	"sync"
 	"example.com/test/di/internal"
 	"example.com/test/domain"
+	"sync"
 )
 
 type Container struct {
@@ -681,8 +681,8 @@ const singleContainerWithCloserInternalContainer = `package testpkg
 
 import (
 	"context"
-	"example.com/test/sql"
 	"example.com/test/di/internal/definitions"
+	"example.com/test/sql"
 )
 
 type Container struct {
@@ -727,14 +727,14 @@ const twoServicesFromOnePackageInternalContainer = `package testpkg
 
 import (
 	"context"
-	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
+	"example.com/test/domain"
 )
 
 type Container struct {
 	err error
 
-	firstService *domain.Service
+	firstService  *domain.Service
 	secondService *domain.Service
 }
 
@@ -777,8 +777,8 @@ const separateContainerInternalContainer = `package testpkg
 
 import (
 	"context"
-	"example.com/test/domain"
 	"example.com/test/di/internal/definitions"
+	"example.com/test/domain"
 )
 
 type Container struct {
@@ -811,7 +811,7 @@ func (c *Container) SetError(err error) {
 type InternalContainerType struct {
 	*Container
 
-	firstService *domain.Service
+	firstService  *domain.Service
 	secondService *domain.Service
 }
 
@@ -876,10 +876,10 @@ type InternalContainerType interface {
 const separateContainerPublicFile = `package di
 
 import (
-	"sync"
-	"example.com/test/di/internal"
 	"context"
+	"example.com/test/di/internal"
 	"example.com/test/domain"
+	"sync"
 )
 
 type Container struct {

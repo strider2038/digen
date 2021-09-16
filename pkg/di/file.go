@@ -1,6 +1,9 @@
 package di
 
-import "bytes"
+import (
+	"bytes"
+	"go/format"
+)
 
 type PackageType int
 
@@ -76,9 +79,14 @@ func (b *FileBuilder) GetFile() *File {
 
 	b.body.WriteTo(&buffer)
 
+	content, err := format.Source(buffer.Bytes())
+	if err != nil {
+		content = buffer.Bytes()
+	}
+
 	return &File{
 		Package: b.packageType,
 		Name:    b.fileName,
-		Content: buffer.Bytes(),
+		Content: content,
 	}
 }

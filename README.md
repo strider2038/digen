@@ -77,7 +77,7 @@ type RepositoryContainer struct {
 * [ ] definitions updater
 * [ ] ability to set definition name
 * [ ] ability to choose specific file for definition
-* [ ] apply gofmt
+* [x] apply gofmt
 * [ ] generate external services
 * [ ] custom close functions
 * [ ] custom container name
