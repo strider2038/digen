@@ -8,14 +8,14 @@ import (
 )
 
 var (
-	version   string
-	buildTime string
+	version string
+	date    string
 )
 
 func main() {
 	err := console.Execute(
 		console.Version(version),
-		console.BuildTime(buildTime),
+		console.BuildTime(date),
 	)
 	if err != nil {
 		pterm.Error.Println(err)
