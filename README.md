@@ -4,10 +4,10 @@ Project is under development
 
 ## Installation
 
-Download binary from releases page. Add path to binary into export path. For example, you can edit `~/.profile`.
+Run on linux
 
 ```bash
-export PATH=$PATH:$HOME/app/digen
+sh -c "$(curl --location https://raw.githubusercontent.com/strider2038/digen/master/install.sh)" -- -d -b /usr/local/bin
 ```
 
 ## How to use
