@@ -9,17 +9,17 @@ import (
 )
 
 type Generator struct {
-	WorkDir           string
-	ModulePath        string
-	ContainerFilename string
-	Logger            Logger
+	BaseDir        string
+	ModulePath     string
+	ConfigFilename string
+	Logger         Logger
 
 	Version   string
 	BuildTime string
 }
 
 func (g Generator) RootPackage() string {
-	return g.ModulePath + "/" + g.WorkDir
+	return g.ModulePath + "/" + g.BaseDir
 }
 
 func (g *Generator) Generate() error {
@@ -28,12 +28,12 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
-	container, err := ParseContainerFromFile(g.ContainerFilename)
+	container, err := ParseContainerFromFile(g.ConfigFilename)
 	if err != nil {
 		return err
 	}
 
-	g.Logger.Info("DI container", g.ContainerFilename, "successfully parsed")
+	g.Logger.Info("DI container", g.ConfigFilename, "successfully parsed")
 
 	err = g.generateFiles(container)
 	if err != nil {
@@ -45,7 +45,7 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
-	g.Logger.Success("Generation completed at dir", g.WorkDir)
+	g.Logger.Success("Generation completed at dir", g.BaseDir)
 
 	return nil
 }
@@ -62,7 +62,7 @@ func (g *Generator) Initialize() error {
 		return err
 	}
 
-	writer := NewWriter(g.WorkDir)
+	writer := NewWriter(g.BaseDir)
 
 	err = writer.WriteFile(file)
 	if err != nil {
@@ -75,11 +75,11 @@ func (g *Generator) Initialize() error {
 }
 
 func (g *Generator) init() error {
-	if g.WorkDir == "" {
-		g.WorkDir = "."
+	if g.BaseDir == "" {
+		g.BaseDir = "."
 	}
-	if g.ContainerFilename == "" {
-		g.ContainerFilename = g.WorkDir + "/internal/_config.go"
+	if g.ConfigFilename == "" {
+		g.ConfigFilename = g.BaseDir + "/internal/_config.go"
 	}
 
 	mod, err := os.ReadFile("go.mod")
@@ -110,7 +110,7 @@ func (g *Generator) generateFiles(container *RootContainerDefinition) error {
 		return err
 	}
 
-	writer := NewWriter(g.WorkDir)
+	writer := NewWriter(g.BaseDir)
 	writer.Overwrite = true
 	writer.Heading, err = g.generateHeading()
 	if err != nil {
@@ -129,14 +129,14 @@ func (g *Generator) generateFiles(container *RootContainerDefinition) error {
 }
 
 func (g *Generator) generateDefinitionsFiles(container *RootContainerDefinition) error {
-	manager := NewDefinitionsManager(container, g.WorkDir)
+	manager := NewDefinitionsManager(container, g.BaseDir)
 	files, err := manager.Generate()
 	if err != nil {
 		return err
 	}
 
 	for _, file := range files {
-		writer := NewWriter(g.WorkDir)
+		writer := NewWriter(g.BaseDir)
 		err = writer.WriteFile(file)
 		if err != nil {
 			return err
@@ -149,7 +149,7 @@ func (g *Generator) generateDefinitionsFiles(container *RootContainerDefinition)
 }
 
 func (g *Generator) isDefinitionsFileExist() bool {
-	filename := g.WorkDir + "/" + packageDirs[DefinitionsPackage] + "/definitions.go"
+	filename := g.BaseDir + "/" + packageDirs[DefinitionsPackage] + "/definitions.go"
 
 	return isFileExist(filename)
 }

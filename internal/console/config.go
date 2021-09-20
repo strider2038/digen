@@ -3,6 +3,7 @@ package console
 import (
 	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
@@ -37,12 +38,13 @@ func initConfig(config *viper.Viper) error {
 		},
 	}
 
-	workDir, err := prompt.Run()
+	dir, err := prompt.Run()
 	if err != nil {
 		return err
 	}
 
-	config.Set("work_dir", workDir)
+	config.Set("di.dir", dir)
+	config.Set("di.config_file", strings.TrimRight(dir, "/")+"/internal/_config.go")
 	err = config.SafeWriteConfig()
 	if err != nil {
 		return errors.Wrap(err, "failed to write config")
