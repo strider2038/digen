@@ -64,7 +64,7 @@ func (c *Container) SetError(err error) {
 
 var getterTemplate = template.Must(template.New("getter").Parse(`
 func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) {{.ServiceType}} {
-{{ if .HasDefinition }}	if c.{{.ServiceName}} == nil {
+{{ if .HasDefinition }}	if c.{{.ServiceName}} == nil && c.err == nil {
 		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx, c){{ end }}
 	}
 {{ end }}	return c.{{.ServiceName}}

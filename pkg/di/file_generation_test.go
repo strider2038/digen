@@ -334,7 +334,7 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
-	if c.serviceName == nil {
+	if c.serviceName == nil && c.err == nil {
 		c.serviceName = definitions.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
@@ -444,7 +444,7 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
-	if c.serviceName == nil {
+	if c.serviceName == nil && c.err == nil {
 		c.serviceName = definitions.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
@@ -622,7 +622,7 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
-	if c.serviceName == nil {
+	if c.serviceName == nil && c.err == nil {
 		panic("missing ServiceName")
 	}
 	return c.serviceName
@@ -710,7 +710,7 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) Connection(ctx context.Context) sql.Connection {
-	if c.connection == nil {
+	if c.connection == nil && c.err == nil {
 		c.connection = definitions.CreateConnection(ctx, c)
 	}
 	return c.connection
@@ -757,14 +757,14 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) FirstService(ctx context.Context) *domain.Service {
-	if c.firstService == nil {
+	if c.firstService == nil && c.err == nil {
 		c.firstService = definitions.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
 func (c *Container) SecondService(ctx context.Context) *domain.Service {
-	if c.secondService == nil {
+	if c.secondService == nil && c.err == nil {
 		c.secondService = definitions.CreateSecondService(ctx, c)
 	}
 	return c.secondService
@@ -816,7 +816,7 @@ type InternalContainerType struct {
 }
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
-	if c.topService == nil {
+	if c.topService == nil && c.err == nil {
 		c.topService = definitions.CreateTopService(ctx, c)
 	}
 	return c.topService
@@ -827,14 +827,14 @@ func (c *Container) InternalContainerName() definitions.InternalContainerType {
 }
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
-	if c.firstService == nil {
+	if c.firstService == nil && c.err == nil {
 		c.firstService = definitions.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
-	if c.secondService == nil {
+	if c.secondService == nil && c.err == nil {
 		c.secondService = definitions.CreateSecondService(ctx, c)
 	}
 	return c.secondService
