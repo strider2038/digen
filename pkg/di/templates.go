@@ -56,7 +56,7 @@ func (c *Container) Error() error {
 
 // SetError sets the first error into container. The error is used in the public container to return an initialization error.
 func (c *Container) SetError(err error) {
-	if err != nil && c.err != nil {
+	if err != nil && c.err == nil {
 		c.err = err
 	}
 }
