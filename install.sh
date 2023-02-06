@@ -64,6 +64,7 @@ get_binaries() {
   case "$PLATFORM" in
     darwin/386) BINARIES="digen" ;;
     darwin/amd64) BINARIES="digen" ;;
+    darwin/arm64) BINARIES="digen" ;;
     linux/386) BINARIES="digen" ;;
     linux/amd64) BINARIES="digen" ;;
     windows/386) BINARIES="digen" ;;
