@@ -5,7 +5,7 @@
 ### Go installer
 
 ```shell
-go install github.com/strider2038/digen@latest
+go install github.com/strider2038/digen/cmd/digen@latest
 ```
 
 ### Install on linux
