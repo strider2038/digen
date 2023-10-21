@@ -3,7 +3,8 @@ package di
 import (
 	"bytes"
 
-	"github.com/pkg/errors"
+	"github.com/iancoleman/strcase"
+	"github.com/muonsoft/errors"
 )
 
 type PublicContainerGenerator struct {
@@ -36,7 +37,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	for _, service := range g.container.Services {
 		parameters := templateParameters{
 			ContainerName: g.container.Name,
-			ServiceName:   service.Name,
+			ServiceName:   strcase.ToLowerCamel(service.Name),
 			ServiceTitle:  service.Title(),
 			ServiceType:   service.Type.String(),
 		}
@@ -48,25 +49,25 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 			needsImport = true
 			err := publicGetterTemplate.Execute(&g.methods, parameters)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to generate getter for %s", service.Name)
+				return nil, errors.Errorf("generate getter for %s: %w", service.Name, err)
 			}
 		}
 		if service.HasSetter {
 			needsImport = true
 			err := publicSetterTemplate.Execute(&g.methods, parameters)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to generate setter for %s", service.Name)
+				return nil, errors.Errorf("generate setter for %s: %w", service.Name, err)
 			}
 		}
 		if service.IsRequired {
 			needsImport = true
 			err := argumentTemplate.Execute(&g.arguments, parameters)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to generate argument for %s", service.Name)
+				return nil, errors.Errorf("generate argument for %s: %w", service.Name, err)
 			}
 			err = argumentSetterTemplate.Execute(&g.argumentSetters, parameters)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to generate argument setter for %s", service.Name)
+				return nil, errors.Errorf("generate argument setter for %s: %w", service.Name, err)
 			}
 		}
 
@@ -92,25 +93,25 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 				needsImport = true
 				err := publicGetterTemplate.Execute(&g.methods, parameters)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to generate getter for %s", service.Name)
+					return nil, errors.Errorf("generate getter for %s: %w", service.Name, err)
 				}
 			}
 			if service.HasSetter {
 				needsImport = true
 				err := publicSetterTemplate.Execute(&g.methods, parameters)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to generate setter for %s", service.Name)
+					return nil, errors.Errorf("generate setter for %s: %w", service.Name, err)
 				}
 			}
 			if service.IsRequired {
 				needsImport = true
 				err := argumentTemplate.Execute(&g.arguments, parameters)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to generate argument for %s", service.Name)
+					return nil, errors.Errorf("generate argument for %s: %w", service.Name, err)
 				}
 				err = argumentSetterTemplate.Execute(&g.argumentSetters, parameters)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to generate argument setter for %s", service.Name)
+					return nil, errors.Errorf("generate argument setter for %s: %w", service.Name, err)
 				}
 			}
 
@@ -133,7 +134,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 		ContainerMethods:         g.methods.String(),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate public container")
+		return nil, errors.Errorf("generate public container: %w", err)
 	}
 
 	return g.file.GetFile(), nil

@@ -5,44 +5,51 @@ import (
 	"strings"
 
 	"github.com/iancoleman/strcase"
-	"github.com/pkg/errors"
+	"github.com/muonsoft/errors"
 )
 
-type DefinitionsManager struct {
+type FactoriesManager struct {
 	container *RootContainerDefinition
 	workDir   string
+	params    GenerationParameters
 }
 
-func NewDefinitionsManager(container *RootContainerDefinition, workDir string) *DefinitionsManager {
-	return &DefinitionsManager{
+func NewFactoriesManager(
+	container *RootContainerDefinition,
+	workDir string,
+	params GenerationParameters,
+) *FactoriesManager {
+	return &FactoriesManager{
 		container: container,
 		workDir:   workDir,
+		params:    params,
 	}
 }
 
-func (m *DefinitionsManager) Generate() ([]*File, error) {
+func (m *FactoriesManager) Generate() ([]*File, error) {
 	servicesByFiles := m.getServicesByFiles()
 
 	files := make([]*File, 0, len(servicesByFiles))
 
 	for filename, services := range servicesByFiles {
-		if m.isDefinitionsFileExist(filename) {
+		if m.isFactoryFileExist(filename) {
 			continue
 		}
 
-		file := NewFileBuilder(filename, "definitions", DefinitionsPackage)
+		file := NewFileBuilder(filename, "factories", FactoriesPackage)
 		file.AddImport(`"context"`)
+		file.AddImport(m.params.packageName(LookupPackage))
 
 		for _, service := range services {
 			file.AddImport(m.container.GetImport(service))
 
-			err := definitionTemplate.Execute(file, templateParameters{
+			err := factoryFuncTemplate.Execute(file, templateParameters{
 				ServicePrefix: strings.Title(service.Prefix),
 				ServiceTitle:  service.Title(),
 				ServiceType:   service.Type.String(),
 			})
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to generate factory for %s", service.Name)
+				return nil, errors.Errorf("generate factory for %s: %w", service.Name, err)
 			}
 		}
 
@@ -52,17 +59,21 @@ func (m *DefinitionsManager) Generate() ([]*File, error) {
 	return files, nil
 }
 
-func (m *DefinitionsManager) isDefinitionsFileExist(filename string) bool {
-	_, err := os.Stat(m.workDir + "/" + packageDirs[DefinitionsPackage] + "/" + filename)
+func (m *FactoriesManager) isFactoryFileExist(filename string) bool {
+	_, err := os.Stat(m.workDir + "/" + packageDirs[FactoriesPackage] + "/" + filename)
 
 	return err == nil
 }
 
-func (m *DefinitionsManager) getServicesByFiles() map[string][]*ServiceDefinition {
+func (m *FactoriesManager) getServicesByFiles() map[string][]*ServiceDefinition {
 	servicesByFiles := make(map[string][]*ServiceDefinition)
 
 	for _, service := range m.container.Services {
 		if service.IsExternal || service.IsRequired {
+			continue
+		}
+		if service.FactoryFileName != "" {
+			servicesByFiles[service.FactoryFileName] = append(servicesByFiles[service.FactoryFileName], service)
 			continue
 		}
 
@@ -74,6 +85,10 @@ func (m *DefinitionsManager) getServicesByFiles() map[string][]*ServiceDefinitio
 
 		for _, service := range container.Services {
 			if service.IsExternal || service.IsRequired {
+				continue
+			}
+			if service.FactoryFileName != "" {
+				servicesByFiles[service.FactoryFileName] = append(servicesByFiles[service.FactoryFileName], service)
 				continue
 			}
 

@@ -3,7 +3,7 @@ package console
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	"github.com/muonsoft/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +65,7 @@ func newGenerateCommand(options *Options) *cobra.Command {
 			config := newConfig()
 			err := config.ReadInConfig()
 			if err != nil {
-				return errors.Wrap(err, "failed to read config")
+				return errors.Errorf("read config: %w", err)
 			}
 
 			generator, err := newGenerator(options, config)

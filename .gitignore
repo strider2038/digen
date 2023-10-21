@@ -1,5 +1,5 @@
 /cmd/digen/digen
 /var
-digen.yaml
+./digen.yaml
 
 dist/

@@ -5,25 +5,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/iancoleman/strcase"
+	"github.com/muonsoft/errors"
 )
 
-type ContainerGenerator struct {
+type InternalContainerGenerator struct {
 	container *RootContainerDefinition
 	params    GenerationParameters
 
 	file *FileBuilder
 }
 
-func NewContainerGenerator(container *RootContainerDefinition, params GenerationParameters) *ContainerGenerator {
-	return &ContainerGenerator{
+func NewInternalContainerGenerator(container *RootContainerDefinition, params GenerationParameters) *InternalContainerGenerator {
+	return &InternalContainerGenerator{
 		container: container,
 		params:    params,
-		file:      NewFileBuilder("container.go", container.Package, InternalPackage),
+		file:      NewFileBuilder("container.go", "internal", InternalPackage),
 	}
 }
 
-func (g *ContainerGenerator) Generate() (*File, error) {
+func (g *InternalContainerGenerator) Generate() (*File, error) {
 	generators := [...]func() error{
 		g.generateRootContainer,
 		g.generateContainers,
@@ -42,23 +43,30 @@ func (g *ContainerGenerator) Generate() (*File, error) {
 	return g.file.GetFile(), nil
 }
 
-func (g *ContainerGenerator) generateRootContainer() error {
+func (g *InternalContainerGenerator) generateRootContainer() error {
 	g.file.AddImport(`"context"`)
 
 	var body bytes.Buffer
 	for _, service := range g.container.Services {
 		g.importService(service)
-		body.WriteString(fmt.Sprintf("\n\t%s %s", service.Name, service.Type.String()))
+		body.WriteString(fmt.Sprintf("\n\t%s %s", strcase.ToLowerCamel(service.Name), service.Type.String()))
 	}
 
 	if len(g.container.Containers) > 0 {
+		g.file.AddImport(g.params.packageName(LookupPackage))
 		body.WriteString("\n")
 	}
 
 	var constructor bytes.Buffer
 	for _, container := range g.container.Containers {
-		body.WriteString(fmt.Sprintf("\n\t%s *%s", container.Name, container.Type.Name))
-		constructor.WriteString(fmt.Sprintf("\tc.%s = &%s{Container: c}\n", container.Name, container.Type.Name))
+		body.WriteString(fmt.Sprintf(
+			"\n\t%s *%s",
+			strcase.ToLowerCamel(container.Name), container.Type.Name,
+		))
+		constructor.WriteString(fmt.Sprintf(
+			"\tc.%s = &%s{Container: c}\n",
+			strcase.ToLowerCamel(container.Name), container.Type.Name),
+		)
 	}
 
 	err := internalContainerTemplate.Execute(g.file, internalContainerTemplateParameters{
@@ -66,20 +74,20 @@ func (g *ContainerGenerator) generateRootContainer() error {
 		ContainerConstructor: constructor.String(),
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate root container")
+		return errors.Errorf("generate root container: %w", err)
 	}
 
 	return nil
 }
 
-func (g *ContainerGenerator) generateContainers() error {
+func (g *InternalContainerGenerator) generateContainers() error {
 	for _, container := range g.container.Containers {
 		g.writeLine(fmt.Sprintf("\ntype %s struct {", container.Type.Name))
 		g.writeLine("\t*Container\n")
 
 		for _, service := range container.Services {
 			g.importService(service)
-			g.writeLine(fmt.Sprintf("\t%s %s", service.Name, service.Type.String()))
+			g.writeLine(fmt.Sprintf("\t%s %s", strcase.ToLowerCamel(service.Name), service.Type.String()))
 		}
 
 		g.writeLine("}")
@@ -88,7 +96,7 @@ func (g *ContainerGenerator) generateContainers() error {
 	return nil
 }
 
-func (g *ContainerGenerator) generateGetters() error {
+func (g *InternalContainerGenerator) generateGetters() error {
 	err := g.writeServiceGetters(g.container.Services, g.container.Name)
 	if err != nil {
 		return err
@@ -111,29 +119,29 @@ func (g *ContainerGenerator) generateGetters() error {
 	return nil
 }
 
-func (g *ContainerGenerator) writeContainerGetter(container *ContainerDefinition) error {
+func (g *InternalContainerGenerator) writeContainerGetter(container *ContainerDefinition) error {
 	parameters := attachedContainerTemplateParameters{
 		ContainerName:                   g.container.Name,
-		AttachedContainerName:           container.Name,
+		AttachedContainerName:           strcase.ToLowerCamel(container.Name),
 		AttachedContainerTitle:          container.Title(),
-		AttachedContainerDefinitionType: "definitions." + container.Type.Name,
+		AttachedContainerDefinitionType: "lookup." + container.Type.Name,
 	}
 	err := separateContainerGetterTemplate.Execute(g.file, parameters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate getter for container %s", container.Name)
+		return errors.Errorf("generate getter for container %s: %w", container.Name, err)
 	}
 
 	return nil
 }
 
-func (g *ContainerGenerator) writeServiceGetters(services []*ServiceDefinition, containerName string) error {
+func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefinition, containerName string) error {
 	for _, service := range services {
 		g.importService(service)
 
 		parameters := templateParameters{
 			ContainerName: containerName,
 			ServicePrefix: strings.Title(service.Prefix),
-			ServiceName:   service.Name,
+			ServiceName:   strcase.ToLowerCamel(service.Name),
 			ServiceTitle:  service.Title(),
 			ServiceType:   service.Type.String(),
 			HasDefinition: !service.IsRequired,
@@ -152,7 +160,7 @@ func (g *ContainerGenerator) writeServiceGetters(services []*ServiceDefinition, 
 	return nil
 }
 
-func (g *ContainerGenerator) generateSetters() error {
+func (g *InternalContainerGenerator) generateSetters() error {
 	for _, service := range g.container.Services {
 		err := g.generateSetter(g.container.Name, service)
 		if err != nil {
@@ -172,13 +180,13 @@ func (g *ContainerGenerator) generateSetters() error {
 	return nil
 }
 
-func (g *ContainerGenerator) generateClosers() error {
+func (g *InternalContainerGenerator) generateClosers() error {
 	g.write("\nfunc (c *Container) Close() {")
 	for _, service := range g.container.Services {
 		if service.HasCloser {
-			err := closerTemplate.Execute(g.file, templateParameters{ServiceName: service.Name})
+			err := closerTemplate.Execute(g.file, templateParameters{ServiceName: strcase.ToLowerCamel(service.Name)})
 			if err != nil {
-				return errors.Wrapf(err, "failed to generate closer for %s", service.Name)
+				return errors.Errorf("generate closer for %s: %w", service.Name, err)
 			}
 		}
 	}
@@ -187,10 +195,10 @@ func (g *ContainerGenerator) generateClosers() error {
 		for _, service := range attachedContainer.Services {
 			if service.HasCloser {
 				err := closerTemplate.Execute(g.file, templateParameters{
-					ServiceName: attachedContainer.Name + "." + service.Name,
+					ServiceName: attachedContainer.Name + "." + strcase.ToLowerCamel(service.Name),
 				})
 				if err != nil {
-					return errors.Wrapf(err, "failed to generate closer for %s", service.Name)
+					return errors.Errorf("generate closer for %s: %w", service.Name, err)
 				}
 			}
 		}
@@ -200,48 +208,48 @@ func (g *ContainerGenerator) generateClosers() error {
 	return nil
 }
 
-func (g *ContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) error {
+func (g *InternalContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) error {
 	if service.HasSetter || service.IsExternal || service.IsRequired {
 		g.importService(service)
 		err := setterTemplate.Execute(g.file, templateParameters{
 			ContainerName: containerName,
-			ServiceName:   service.Name,
+			ServiceName:   strcase.ToLowerCamel(service.Name),
 			ServiceTitle:  service.Title(),
 			ServiceType:   service.Type.String(),
 		})
 		if err != nil {
-			return errors.Wrapf(err, "failed to generate setter for %s", service.Name)
+			return errors.Errorf("generate setter for %s: %w", service.Name, err)
 		}
 	}
 
 	return nil
 }
 
-func (g *ContainerGenerator) write(s string) {
+func (g *InternalContainerGenerator) write(s string) {
 	g.file.WriteString(s)
 }
 
-func (g *ContainerGenerator) writeLine(s string) {
+func (g *InternalContainerGenerator) writeLine(s string) {
 	g.write(s)
 	g.newLine()
 }
 
-func (g *ContainerGenerator) newLine() {
+func (g *InternalContainerGenerator) newLine() {
 	g.write("\n")
 }
 
-func (g *ContainerGenerator) writeGetter(parameters templateParameters, service *ServiceDefinition) error {
+func (g *InternalContainerGenerator) writeGetter(parameters templateParameters, service *ServiceDefinition) error {
 	err := getterTemplate.Execute(g.file, parameters)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate getter for %s", service.Name)
+		return errors.Errorf("generate getter for %s: %w", service.Name, err)
 	}
 	return nil
 }
 
-func (g *ContainerGenerator) importService(service *ServiceDefinition) {
+func (g *InternalContainerGenerator) importService(service *ServiceDefinition) {
 	g.file.AddImport(g.container.GetImport(service))
 }
 
-func (g *ContainerGenerator) importDefinitions() {
-	g.file.AddImport(g.params.packageName(DefinitionsPackage))
+func (g *InternalContainerGenerator) importDefinitions() {
+	g.file.AddImport(g.params.packageName(FactoriesPackage))
 }

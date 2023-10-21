@@ -1,0 +1,3 @@
+di:
+  definitions_file: di/internal/definitions/container.go
+  dir: di

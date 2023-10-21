@@ -40,11 +40,12 @@ type ServiceDefinition struct {
 	Name   string
 	Type   TypeDefinition
 
-	HasSetter  bool // "set" tag - will generate setters for internal and public containers
-	HasCloser  bool // "close" tag - generate closer method call
-	IsRequired bool // "required" tag - will generate argument for public container constructor
-	IsPublic   bool // "public" tag - will generate getter for public container
-	IsExternal bool // "external" tag - no definition, panic if empty, force public setter
+	FactoryFileName string // "factory-file" tag
+	HasSetter       bool   // "set" tag - will generate setters for internal and public containers
+	HasCloser       bool   // "close" tag - generate closer method call
+	IsRequired      bool   // "required" tag - will generate argument for public container constructor
+	IsPublic        bool   // "public" tag - will generate getter for public container
+	IsExternal      bool   // "external" tag - no definition, panic if empty, force public setter
 }
 
 func (s ServiceDefinition) Title() string {
@@ -55,10 +56,17 @@ func newServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefi
 	name := parseFieldName(field)
 	tags := parseFieldTags(field)
 
-	definition := &ServiceDefinition{Name: name, Type: typeDef}
+	definition := &ServiceDefinition{
+		Name:            name,
+		Type:            typeDef,
+		FactoryFileName: tags.FactoryFilename,
+	}
+	if definition.FactoryFileName != "" {
+		definition.FactoryFileName += ".go"
+	}
 
-	for _, tag := range tags {
-		switch tag {
+	for _, option := range tags.Options {
+		switch option {
 		case "set":
 			definition.HasSetter = true
 		case "close":
@@ -109,14 +117,7 @@ type FactoryFile struct {
 	Services []string
 }
 
-type Tags []string
-
-func (tags Tags) Contains(tag string) bool {
-	for _, t := range tags {
-		if t == tag {
-			return true
-		}
-	}
-
-	return false
+type Tags struct {
+	Options         []string
+	FactoryFilename string
 }

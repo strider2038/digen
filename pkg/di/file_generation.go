@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/muonsoft/errors"
 )
 
 type GenerationParameters struct {
@@ -29,11 +29,11 @@ func GenerateFiles(container *RootContainerDefinition, params GenerationParamete
 
 	generators := [...]func(container *RootContainerDefinition, params GenerationParameters) (*File, error){
 		func(container *RootContainerDefinition, params GenerationParameters) (*File, error) {
-			generator := NewContainerGenerator(container, params)
+			generator := NewInternalContainerGenerator(container, params)
 
 			return generator.Generate()
 		},
-		generateDefinitionsContractsFile,
+		generateLookupContainerFile,
 		func(container *RootContainerDefinition, params GenerationParameters) (*File, error) {
 			generator := NewPublicContainerGenerator(container, params)
 
@@ -44,7 +44,7 @@ func GenerateFiles(container *RootContainerDefinition, params GenerationParamete
 	for _, generate := range generators {
 		file, err := generate(container, params)
 		if err != nil {
-			return nil, errors.WithMessage(err, "failed to generate file")
+			return nil, errors.Errorf("generate file: %w", err)
 		}
 
 		files = append(files, file)
@@ -53,23 +53,23 @@ func GenerateFiles(container *RootContainerDefinition, params GenerationParamete
 	return files, nil
 }
 
-func GenerateContainerFile(params GenerationParameters) (*File, error) {
+func GenerateDefinitionsContainerFile() (*File, error) {
 	var buffer bytes.Buffer
 
-	err := configFileTemplate.Execute(&buffer, nil)
+	err := definitionsContainerFileTemplate.Execute(&buffer, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate internal container")
+		return nil, errors.Errorf("generate internal container: %w")
 	}
 
 	return &File{
-		Package: InternalPackage,
-		Name:    "_config.go",
+		Package: DefinitionsPackage,
+		Name:    "container.go",
 		Content: buffer.Bytes(),
 	}, nil
 }
 
-func generateDefinitionsContractsFile(container *RootContainerDefinition, params GenerationParameters) (*File, error) {
-	file := NewFileBuilder("contracts.go", "definitions", DefinitionsPackage)
+func generateLookupContainerFile(container *RootContainerDefinition, params GenerationParameters) (*File, error) {
+	file := NewFileBuilder("container.go", "lookup", LookupPackage)
 
 	file.AddImport(`"context"`)
 
