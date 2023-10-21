@@ -1,8 +1,6 @@
 package console
 
 import (
-	"strings"
-
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
 	"github.com/strider2038/digen/pkg/di"
@@ -13,17 +11,12 @@ func newGenerator(options *Options, config *viper.Viper) (*di.Generator, error) 
 	if dir == "" {
 		dir = config.GetString("work_dir")
 	}
-	configFile := config.GetString("di.config_file")
-	if configFile == "" {
-		configFile = strings.TrimRight(dir, "/") + "/internal/_config.go"
-	}
 
 	generator := &di.Generator{
-		BaseDir:        dir,
-		ConfigFilename: configFile,
-		Version:        options.Version,
-		BuildTime:      options.BuildTime,
-		Logger:         terminalLogger{},
+		BaseDir:   dir,
+		Version:   options.Version,
+		BuildTime: options.BuildTime,
+		Logger:    terminalLogger{},
 	}
 
 	return generator, nil
@@ -37,4 +30,8 @@ func (log terminalLogger) Info(a ...interface{}) {
 
 func (log terminalLogger) Success(a ...interface{}) {
 	pterm.Success.Println(a...)
+}
+
+func (log terminalLogger) Warning(a ...interface{}) {
+	pterm.Warning.Println(a...)
 }

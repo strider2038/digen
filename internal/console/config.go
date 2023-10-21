@@ -3,10 +3,9 @@ package console
 import (
 	"io/fs"
 	"os"
-	"strings"
 
 	"github.com/manifoldco/promptui"
-	"github.com/pkg/errors"
+	"github.com/muonsoft/errors"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
 )
@@ -24,11 +23,12 @@ func newConfig() *viper.Viper {
 
 func initConfig(config *viper.Viper) error {
 	if isFileExist("digen.yaml") {
+
 		return nil
 	}
 
 	prompt := promptui.Prompt{
-		Label: "Enter path to work directory",
+		Label: "enter path to work directory",
 		Validate: func(path string) error {
 			if fs.ValidPath(path) {
 				return nil
@@ -44,10 +44,9 @@ func initConfig(config *viper.Viper) error {
 	}
 
 	config.Set("di.dir", dir)
-	config.Set("di.config_file", strings.TrimRight(dir, "/")+"/internal/_config.go")
 	err = config.SafeWriteConfig()
 	if err != nil {
-		return errors.Wrap(err, "failed to write config")
+		return errors.Errorf("write config: %w", err)
 	}
 
 	pterm.Success.Println("configuration file generated: digen.yaml")

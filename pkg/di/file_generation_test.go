@@ -42,8 +42,8 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, di.InternalPackage, files[0].Package)
 				assert.Equal(t, "container.go", files[0].Name)
 				assert.Equal(t, singleContainerWithGettersOnlyInternalContainer, string(files[0].Content))
-				assert.Equal(t, di.DefinitionsPackage, files[1].Package)
-				assert.Equal(t, "contracts.go", files[1].Name)
+				assert.Equal(t, di.LookupPackage, files[1].Package)
+				assert.Equal(t, "container.go", files[1].Name)
 				assert.Equal(t, singleContainerWithGettersOnlyDefinitionContracts, string(files[1].Content))
 				assert.Equal(t, di.PublicPackage, files[2].Package)
 				assert.Equal(t, "container.go", files[2].Name)
@@ -284,7 +284,7 @@ func TestGenerate(t *testing.T) {
 
 				require.GreaterOrEqual(t, len(files), 3)
 				assert.Equal(t, separateContainerInternalContainer, string(files[0].Content))
-				assert.Equal(t, separateContainerDefinitionsContractsFile, string(files[1].Content))
+				assert.Equal(t, separateLookupContainerFile, string(files[1].Content))
 				assert.Equal(t, separateContainerPublicFile, string(files[2].Content))
 			},
 		},
@@ -301,11 +301,11 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-const singleContainerWithGettersOnlyInternalContainer = `package testpkg
+const singleContainerWithGettersOnlyInternalContainer = `package internal
 
 import (
 	"context"
-	"example.com/test/di/internal/definitions"
+	"example.com/test/di/internal/factories"
 	"example.com/test/domain"
 )
 
@@ -335,7 +335,7 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if c.serviceName == nil && c.err == nil {
-		c.serviceName = definitions.CreateServiceName(ctx, c)
+		c.serviceName = factories.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
 }
@@ -343,7 +343,7 @@ func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 func (c *Container) Close() {}
 `
 
-const singleContainerWithGettersOnlyDefinitionContracts = `package definitions
+const singleContainerWithGettersOnlyDefinitionContracts = `package lookup
 
 import (
 	"context"
@@ -411,11 +411,11 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithServiceSetterInternalContainer = `package testpkg
+const singleContainerWithServiceSetterInternalContainer = `package internal
 
 import (
 	"context"
-	"example.com/test/di/internal/definitions"
+	"example.com/test/di/internal/factories"
 	"example.com/test/domain"
 )
 
@@ -445,7 +445,7 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if c.serviceName == nil && c.err == nil {
-		c.serviceName = definitions.CreateServiceName(ctx, c)
+		c.serviceName = factories.CreateServiceName(ctx, c)
 	}
 	return c.serviceName
 }
@@ -504,7 +504,7 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithRequiredServiceInternalContainer = `package testpkg
+const singleContainerWithRequiredServiceInternalContainer = `package internal
 
 import (
 	"context"
@@ -590,7 +590,7 @@ func (c *Container) Close() {
 }
 `
 
-const singleContainerWithExternalServiceInternalContainer = `package testpkg
+const singleContainerWithExternalServiceInternalContainer = `package internal
 
 import (
 	"context"
@@ -635,7 +635,7 @@ func (c *Container) SetServiceName(s *domain.Service) {
 func (c *Container) Close() {}
 `
 
-const singleContainerWithStaticTypeInternalContainer = `package testpkg
+const singleContainerWithStaticTypeInternalContainer = `package internal
 
 import (
 	"context"
@@ -677,11 +677,11 @@ func (c *Container) SetConfiguration(s config.Configuration) {
 func (c *Container) Close() {}
 `
 
-const singleContainerWithCloserInternalContainer = `package testpkg
+const singleContainerWithCloserInternalContainer = `package internal
 
 import (
 	"context"
-	"example.com/test/di/internal/definitions"
+	"example.com/test/di/internal/factories"
 	"example.com/test/sql"
 )
 
@@ -711,7 +711,7 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) Connection(ctx context.Context) sql.Connection {
 	if c.connection == nil && c.err == nil {
-		c.connection = definitions.CreateConnection(ctx, c)
+		c.connection = factories.CreateConnection(ctx, c)
 	}
 	return c.connection
 }
@@ -723,11 +723,11 @@ func (c *Container) Close() {
 }
 `
 
-const twoServicesFromOnePackageInternalContainer = `package testpkg
+const twoServicesFromOnePackageInternalContainer = `package internal
 
 import (
 	"context"
-	"example.com/test/di/internal/definitions"
+	"example.com/test/di/internal/factories"
 	"example.com/test/domain"
 )
 
@@ -758,14 +758,14 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) FirstService(ctx context.Context) *domain.Service {
 	if c.firstService == nil && c.err == nil {
-		c.firstService = definitions.CreateFirstService(ctx, c)
+		c.firstService = factories.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
 func (c *Container) SecondService(ctx context.Context) *domain.Service {
 	if c.secondService == nil && c.err == nil {
-		c.secondService = definitions.CreateSecondService(ctx, c)
+		c.secondService = factories.CreateSecondService(ctx, c)
 	}
 	return c.secondService
 }
@@ -773,11 +773,12 @@ func (c *Container) SecondService(ctx context.Context) *domain.Service {
 func (c *Container) Close() {}
 `
 
-const separateContainerInternalContainer = `package testpkg
+const separateContainerInternalContainer = `package internal
 
 import (
 	"context"
-	"example.com/test/di/internal/definitions"
+	"example.com/test/di/internal/factories"
+	"example.com/test/di/internal/lookup"
 	"example.com/test/domain"
 )
 
@@ -817,25 +818,25 @@ type InternalContainerType struct {
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
 	if c.topService == nil && c.err == nil {
-		c.topService = definitions.CreateTopService(ctx, c)
+		c.topService = factories.CreateTopService(ctx, c)
 	}
 	return c.topService
 }
 
-func (c *Container) InternalContainerName() definitions.InternalContainerType {
+func (c *Container) InternalContainerName() lookup.InternalContainerType {
 	return c.internalContainerName
 }
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
 	if c.firstService == nil && c.err == nil {
-		c.firstService = definitions.CreateFirstService(ctx, c)
+		c.firstService = factories.CreateFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
 	if c.secondService == nil && c.err == nil {
-		c.secondService = definitions.CreateSecondService(ctx, c)
+		c.secondService = factories.CreateSecondService(ctx, c)
 	}
 	return c.secondService
 }
@@ -851,7 +852,7 @@ func (c *Container) Close() {
 }
 `
 
-const separateContainerDefinitionsContractsFile = `package definitions
+const separateLookupContainerFile = `package lookup
 
 import (
 	"context"

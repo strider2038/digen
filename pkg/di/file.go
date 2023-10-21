@@ -12,18 +12,31 @@ const (
 	PublicPackage
 	InternalPackage
 	DefinitionsPackage
+	FactoriesPackage
+	LookupPackage
 	lastPackage
 )
 
 var packageDirs = [lastPackage]string{
 	InternalPackage:    "internal",
 	DefinitionsPackage: "internal/definitions",
+	FactoriesPackage:   "internal/factories",
+	LookupPackage:      "internal/lookup",
 }
 
 type File struct {
 	Package PackageType
 	Name    string
 	Content []byte
+}
+
+func (f *File) Path() string {
+	path := packageDirs[f.Package]
+	if path != "" {
+		path += "/"
+	}
+
+	return path + f.Name
 }
 
 type FileBuilder struct {

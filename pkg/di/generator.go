@@ -4,72 +4,72 @@ import (
 	"bytes"
 	"os"
 
-	"github.com/pkg/errors"
+	"github.com/muonsoft/errors"
 	"golang.org/x/mod/modfile"
 )
 
 type Generator struct {
-	BaseDir        string
-	ModulePath     string
-	ConfigFilename string
-	Logger         Logger
+	BaseDir    string
+	ModulePath string
+	Logger     Logger
 
 	Version   string
 	BuildTime string
 }
 
-func (g Generator) RootPackage() string {
+func (g *Generator) RootPackage() string {
 	return g.ModulePath + "/" + g.BaseDir
 }
 
-func (g *Generator) Generate() error {
-	err := g.init()
-	if err != nil {
-		return err
-	}
-
-	container, err := ParseContainerFromFile(g.ConfigFilename)
-	if err != nil {
-		return err
-	}
-
-	g.Logger.Info("DI container", g.ConfigFilename, "successfully parsed")
-
-	err = g.generateFiles(container)
-	if err != nil {
-		return err
-	}
-
-	err = g.generateDefinitionsFiles(container)
-	if err != nil {
-		return err
-	}
-
-	g.Logger.Success("Generation completed at dir", g.BaseDir)
-
-	return nil
-}
-
 func (g *Generator) Initialize() error {
-	err := g.init()
-	if err != nil {
+	if err := g.init(); err != nil {
 		return err
 	}
 
-	params := GenerationParameters{}
-	file, err := GenerateContainerFile(params)
+	file, err := GenerateDefinitionsContainerFile()
 	if err != nil {
 		return err
 	}
 
 	writer := NewWriter(g.BaseDir)
+	if err := writer.WriteFile(file); err != nil {
+		if errors.Is(err, ErrFileAlreadyExists) {
+			g.Logger.Warning("init skipped: file", file.Path(), "already exists")
 
-	err = writer.WriteFile(file)
+			return nil
+		}
+
+		return err
+	}
+
+	g.Logger.Success("init completed: file", file.Path(), "generated")
+
+	return nil
+}
+
+func (g *Generator) Generate() error {
+	if err := g.init(); err != nil {
+		return err
+	}
+
+	container, err := ParseDefinitionsFromFile(g.BaseDir + "/" + definitionsFile)
 	if err != nil {
 		return err
 	}
 
-	g.Logger.Success("Init completed: file", file.Name, "generated")
+	g.Logger.Info("definitions container", definitionsFile, "successfully parsed")
+
+	if err := g.generateFiles(container); err != nil {
+		return err
+	}
+	if err := g.generateFactoriesFiles(container); err != nil {
+		return err
+	}
+	if err := g.generateReadmeFile(); err != nil {
+		return err
+	}
+
+	g.Logger.Success("generation completed at dir", g.BaseDir)
 
 	return nil
 }
@@ -78,17 +78,14 @@ func (g *Generator) init() error {
 	if g.BaseDir == "" {
 		g.BaseDir = "."
 	}
-	if g.ConfigFilename == "" {
-		g.ConfigFilename = g.BaseDir + "/internal/_config.go"
-	}
 
 	mod, err := os.ReadFile("go.mod")
 	if err != nil {
-		return errors.Wrap(err, "failed to read go.mod file")
+		return errors.Errorf("read go.mod file: %w", err)
 	}
 	path := modfile.ModulePath(mod)
 	if path == "" {
-		return errors.WithStack(errMissingModule)
+		return errors.Wrap(errMissingModule)
 	}
 
 	g.ModulePath = path
@@ -122,14 +119,17 @@ func (g *Generator) generateFiles(container *RootContainerDefinition) error {
 		if err != nil {
 			return err
 		}
-		g.Logger.Info("File", file.Name, "generated")
+		g.Logger.Info("file", file.Path(), "generated")
 	}
 
 	return nil
 }
 
-func (g *Generator) generateDefinitionsFiles(container *RootContainerDefinition) error {
-	manager := NewDefinitionsManager(container, g.BaseDir)
+func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) error {
+	params := GenerationParameters{
+		RootPackage: g.RootPackage(),
+	}
+	manager := NewFactoriesManager(container, g.BaseDir, params)
 	files, err := manager.Generate()
 	if err != nil {
 		return err
@@ -142,23 +142,34 @@ func (g *Generator) generateDefinitionsFiles(container *RootContainerDefinition)
 			return err
 		}
 
-		g.Logger.Info("Definitions file", file.Name, "generated")
+		g.Logger.Info("factories file", file.Path(), "generated")
 	}
 
 	return nil
 }
 
-func (g *Generator) isDefinitionsFileExist() bool {
-	filename := g.BaseDir + "/" + packageDirs[DefinitionsPackage] + "/definitions.go"
+func (g *Generator) generateReadmeFile() error {
+	file := &File{
+		Name:    "README.md",
+		Content: []byte(readmeTemplate),
+	}
 
-	return isFileExist(filename)
+	writer := NewWriter(g.BaseDir)
+	writer.Overwrite = true
+	if err := writer.WriteFile(file); err != nil {
+		return err
+	}
+
+	g.Logger.Info("readme file", file.Path(), "generated")
+
+	return nil
 }
 
 func (g *Generator) generateHeading() ([]byte, error) {
 	var heading bytes.Buffer
 	err := headingTemplate.Execute(&heading, g)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate heading")
+		return nil, errors.Errorf("generate heading: %w", err)
 	}
 
 	return heading.Bytes(), nil

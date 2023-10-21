@@ -19,20 +19,20 @@ import (
 )
 
 type Container struct {
-	configuration    config.Configuration
-	entityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
-	handler          *httpadapter.GetEntityHandler
+	Configuration    config.Configuration
+	EntityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
+	Handler          *httpadapter.GetEntityHandler ` + "`factory-file:\"http_handler\"`" + `
 
-	useCase UseCaseContainer
+	UseCase UseCaseContainer
 }
 
 type UseCaseContainer struct {
-	findEntity *usecase.FindEntity
+	FindEntity *usecase.FindEntity
 }
 `
 
 const testFactorySource = `
-package definitions
+package factories
 
 import (
 	"example.com/test/application/usecase"
@@ -108,7 +108,7 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 
 func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
 	if assert.Len(t, services, 3) {
-		assert.Equal(t, "configuration", services[0].Name)
+		assert.Equal(t, "Configuration", services[0].Name)
 		assert.Equal(t, "config", services[0].Type.Package)
 		assert.Equal(t, "Configuration", services[0].Type.Name)
 		assert.False(t, services[0].Type.IsPointer)
@@ -118,7 +118,7 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 		assert.False(t, services[0].IsPublic)
 		assert.False(t, services[0].IsExternal)
 
-		assert.Equal(t, "entityRepository", services[1].Name)
+		assert.Equal(t, "EntityRepository", services[1].Name)
 		assert.Equal(t, "domain", services[1].Type.Package)
 		assert.Equal(t, "EntityRepository", services[1].Type.Name)
 		assert.False(t, services[1].Type.IsPointer)
@@ -128,9 +128,10 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 		assert.True(t, services[1].IsPublic)
 		assert.True(t, services[1].IsExternal)
 
-		assert.Equal(t, "handler", services[2].Name)
+		assert.Equal(t, "Handler", services[2].Name)
 		assert.Equal(t, "httpadapter", services[2].Type.Package)
 		assert.Equal(t, "GetEntityHandler", services[2].Type.Name)
+		assert.Equal(t, "http_handler.go", services[2].FactoryFileName)
 		assert.True(t, services[2].Type.IsPointer)
 		assert.False(t, services[2].HasSetter)
 		assert.False(t, services[2].HasCloser)
@@ -150,10 +151,10 @@ func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDe
 		return
 	}
 
-	assert.Equal(t, "findEntity", services[0].Name)
+	assert.Equal(t, "FindEntity", services[0].Name)
 	assert.Equal(t, "usecase", services[0].Type.Package)
 	assert.Equal(t, "FindEntity", services[0].Type.Name)
-	assert.Equal(t, "useCase", services[0].Prefix)
+	assert.Equal(t, "UseCase", services[0].Prefix)
 	assert.True(t, services[0].Type.IsPointer)
 	assert.False(t, services[0].HasSetter)
 	assert.False(t, services[0].HasCloser)

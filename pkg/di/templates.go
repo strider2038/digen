@@ -1,6 +1,12 @@
 package di
 
-import "text/template"
+import (
+	_ "embed"
+	"text/template"
+)
+
+//go:embed templates/README.md
+var readmeTemplate string
 
 type templateParameters struct {
 	ContainerName string
@@ -65,7 +71,7 @@ func (c *Container) SetError(err error) {
 var getterTemplate = template.Must(template.New("getter").Parse(`
 func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) {{.ServiceType}} {
 {{ if .HasDefinition }}	if c.{{.ServiceName}} == nil && c.err == nil {
-		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = definitions.Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx, c){{ end }}
+		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = factories.Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx, c){{ end }}
 	}
 {{ end }}	return c.{{.ServiceName}}
 }
@@ -89,13 +95,13 @@ var closerTemplate = template.Must(template.New("closer").Parse(`
 	}
 `))
 
-var definitionTemplate = template.Must(template.New("factory").Parse(`
-func Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx context.Context, c Container) {{.ServiceType}} {
+var factoryFuncTemplate = template.Must(template.New("factory").Parse(`
+func Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx context.Context, c lookup.Container) {{.ServiceType}} {
 	panic("not implemented")
 }
 `))
 
-var configFileTemplate = template.Must(template.New("internal container").Parse(`package internal
+var definitionsContainerFileTemplate = template.Must(template.New("definitions container").Parse(`package definitions
 
 // Container is a root dependency injection container. It is required to describe
 // your services.
