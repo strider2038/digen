@@ -2,7 +2,7 @@
 
 ## How to use
 
-1. Describe your service definitions in [`definitions`](./internal/definitions) package.
+1. Describe your service definitions in [`definitions/container.go`](./internal/definitions/container.go) file.
 2. Run `digen generate` command to regenerate container files.
 3. Describe factory methods for your services in [`factories`](./internal/factories) package.
 4. Build your application.
