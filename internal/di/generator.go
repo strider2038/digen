@@ -8,6 +8,10 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
+const (
+	definitionsFile = "internal/definitions/container.go"
+)
+
 type Generator struct {
 	BaseDir    string
 	ModulePath string
@@ -59,7 +63,7 @@ func (g *Generator) Generate() error {
 
 	g.Logger.Info("definitions container", definitionsFile, "successfully parsed")
 
-	if err := g.generateFiles(container); err != nil {
+	if err := g.generateContainerFiles(container); err != nil {
 		return err
 	}
 	if err := g.generateFactoriesFiles(container); err != nil {
@@ -97,7 +101,7 @@ func (g *Generator) init() error {
 	return nil
 }
 
-func (g *Generator) generateFiles(container *RootContainerDefinition) error {
+func (g *Generator) generateContainerFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
 		RootPackage: g.RootPackage(),
 	}
@@ -129,7 +133,7 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 	params := GenerationParameters{
 		RootPackage: g.RootPackage(),
 	}
-	manager := NewFactoriesManager(container, g.BaseDir, params)
+	manager := NewFactoriesGenerator(container, g.BaseDir, params)
 	files, err := manager.Generate()
 	if err != nil {
 		return err

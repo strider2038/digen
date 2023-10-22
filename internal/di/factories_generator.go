@@ -8,40 +8,40 @@ import (
 	"github.com/muonsoft/errors"
 )
 
-type FactoriesManager struct {
+type FactoriesGenerator struct {
 	container *RootContainerDefinition
 	workDir   string
 	params    GenerationParameters
 }
 
-func NewFactoriesManager(
+func NewFactoriesGenerator(
 	container *RootContainerDefinition,
 	workDir string,
 	params GenerationParameters,
-) *FactoriesManager {
-	return &FactoriesManager{
+) *FactoriesGenerator {
+	return &FactoriesGenerator{
 		container: container,
 		workDir:   workDir,
 		params:    params,
 	}
 }
 
-func (m *FactoriesManager) Generate() ([]*File, error) {
-	servicesByFiles := m.getServicesByFiles()
+func (g *FactoriesGenerator) Generate() ([]*File, error) {
+	servicesByFiles := g.getServicesByFiles()
 
 	files := make([]*File, 0, len(servicesByFiles))
 
 	for filename, services := range servicesByFiles {
-		if m.isFactoryFileExist(filename) {
+		if g.isFactoryFileExist(filename) {
 			continue
 		}
 
 		file := NewFileBuilder(filename, "factories", FactoriesPackage)
 		file.AddImport(`"context"`)
-		file.AddImport(m.params.packageName(LookupPackage))
+		file.AddImport(g.params.packageName(LookupPackage))
 
 		for _, service := range services {
-			file.AddImport(m.container.GetImport(service))
+			file.AddImport(g.container.GetImport(service))
 
 			err := factoryFuncTemplate.Execute(file, templateParameters{
 				ServicePrefix: strings.Title(service.Prefix),
@@ -59,16 +59,16 @@ func (m *FactoriesManager) Generate() ([]*File, error) {
 	return files, nil
 }
 
-func (m *FactoriesManager) isFactoryFileExist(filename string) bool {
-	_, err := os.Stat(m.workDir + "/" + packageDirs[FactoriesPackage] + "/" + filename)
+func (g *FactoriesGenerator) isFactoryFileExist(filename string) bool {
+	_, err := os.Stat(g.workDir + "/" + packageDirs[FactoriesPackage] + "/" + filename)
 
 	return err == nil
 }
 
-func (m *FactoriesManager) getServicesByFiles() map[string][]*ServiceDefinition {
+func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinition {
 	servicesByFiles := make(map[string][]*ServiceDefinition)
 
-	for _, service := range m.container.Services {
+	for _, service := range g.container.Services {
 		if service.IsExternal || service.IsRequired {
 			continue
 		}
@@ -80,7 +80,7 @@ func (m *FactoriesManager) getServicesByFiles() map[string][]*ServiceDefinition 
 		servicesByFiles["container.go"] = append(servicesByFiles["container.go"], service)
 	}
 
-	for _, container := range m.container.Containers {
+	for _, container := range g.container.Containers {
 		filename := strcase.ToSnake(container.Name) + ".go"
 
 		for _, service := range container.Services {

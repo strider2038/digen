@@ -3,7 +3,7 @@ package console
 import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
-	"github.com/strider2038/digen/pkg/di"
+	"github.com/strider2038/digen/internal/di"
 )
 
 func newGenerator(options *Options, config *viper.Viper) (*di.Generator, error) {

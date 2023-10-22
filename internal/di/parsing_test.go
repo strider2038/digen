@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/strider2038/digen/pkg/di"
+	"github.com/strider2038/digen/internal/di"
 )
 
 const testContainerSource = `

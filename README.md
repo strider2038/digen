@@ -100,8 +100,10 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [x] generate README.md for root package
 * [x] ability to choose specific file for factory func
 * [ ] custom close functions
+* [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository
 * [ ] ability to set definition name
+* [ ] multi container config
 * [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
 * [ ] write doc
