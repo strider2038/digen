@@ -1,6 +1,7 @@
 package di_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -286,6 +287,48 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, separateContainerInternalContainer, string(files[0].Content))
 				assert.Equal(t, separateLookupContainerFile, string(files[1].Content))
 				assert.Equal(t, separateContainerPublicFile, string(files[2].Content))
+			},
+		},
+		{
+			name: "override service public name",
+			container: &di.RootContainerDefinition{
+				Name:    "Container",
+				Package: "testpkg",
+				Imports: map[string]*di.ImportDefinition{
+					"http": {Path: `"net/http"`},
+				},
+				Services: []*di.ServiceDefinition{
+					{
+						Name:       "Router",
+						PublicName: "APIRouter",
+						IsPublic:   true,
+						Type: di.TypeDefinition{
+							Package: "http",
+							Name:    "Handler",
+						},
+					},
+				},
+			},
+			assert: func(t *testing.T, files []*di.File) {
+				t.Helper()
+
+				fmt.Println(string(files[2].Content))
+				require.GreaterOrEqual(t, len(files), 3)
+				assert.Contains(
+					t, string(files[2].Content),
+					`func (c *Container) APIRouter(ctx context.Context) (http.Handler, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.Router(ctx)
+	err := c.c.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return s, err
+}`,
+				)
 			},
 		},
 	}

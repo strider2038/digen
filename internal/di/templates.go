@@ -9,14 +9,15 @@ import (
 var readmeTemplate string
 
 type templateParameters struct {
-	ContainerName string
-	ServicePrefix string
-	ServicePath   string
-	ServiceName   string
-	ServiceTitle  string
-	ServiceType   string
-	HasDefinition bool
-	PanicOnNil    bool
+	ContainerName     string
+	ServicePrefix     string
+	ServicePath       string
+	ServiceName       string
+	ServiceTitle      string
+	ServiceType       string
+	ServicePublicName string
+	HasDefinition     bool
+	PanicOnNil        bool
 }
 
 type internalContainerTemplateParameters struct {
@@ -161,7 +162,7 @@ var argumentSetterTemplate = template.Must(template.New("argument setter").Parse
 ))
 
 var publicGetterTemplate = template.Must(template.New("public getter").Parse(`
-func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) ({{.ServiceType}}, error) {
+func (c *{{.ContainerName}}) {{if .ServicePublicName}}{{.ServicePublicName}}{{else}}{{.ServiceTitle}}{{end}}(ctx context.Context) ({{.ServiceType}}, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

@@ -2,6 +2,7 @@ package di
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 	"github.com/muonsoft/errors"
@@ -36,10 +37,11 @@ func NewPublicContainerGenerator(
 func (g *PublicContainerGenerator) Generate() (*File, error) {
 	for _, service := range g.container.Services {
 		parameters := templateParameters{
-			ContainerName: g.container.Name,
-			ServiceName:   strcase.ToLowerCamel(service.Name),
-			ServiceTitle:  service.Title(),
-			ServiceType:   service.Type.String(),
+			ContainerName:     g.container.Name,
+			ServiceName:       strcase.ToLowerCamel(service.Name),
+			ServiceTitle:      service.Title(),
+			ServiceType:       service.Type.String(),
+			ServicePublicName: strings.Title(service.PublicName),
 		}
 
 		needsImport := false

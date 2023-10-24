@@ -12,6 +12,8 @@ const testContainerSource = `
 package di
 
 import (
+	"net/http"
+
 	"example.com/test/application/usecase"
 	"example.com/test/domain"
 	"example.com/test/di/config"
@@ -21,7 +23,9 @@ import (
 type Container struct {
 	Configuration    config.Configuration
 	EntityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
-	Handler          *httpadapter.GetEntityHandler ` + "`factory-file:\"http_handler\"`" + `
+	Handler          *httpadapter.GetEntityHandler ` + "`factory_file:\"http_handler\"`" + `
+
+	Router http.Handler ` + "`public_name:\"APIRouter\"`" + `
 
 	UseCase UseCaseContainer
 }
@@ -107,38 +111,50 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 }
 
 func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
-	if assert.Len(t, services, 3) {
-		assert.Equal(t, "Configuration", services[0].Name)
-		assert.Equal(t, "config", services[0].Type.Package)
-		assert.Equal(t, "Configuration", services[0].Type.Name)
-		assert.False(t, services[0].Type.IsPointer)
-		assert.False(t, services[0].HasSetter)
-		assert.False(t, services[0].HasCloser)
-		assert.False(t, services[0].IsRequired)
-		assert.False(t, services[0].IsPublic)
-		assert.False(t, services[0].IsExternal)
+	require.Len(t, services, 4)
 
-		assert.Equal(t, "EntityRepository", services[1].Name)
-		assert.Equal(t, "domain", services[1].Type.Package)
-		assert.Equal(t, "EntityRepository", services[1].Type.Name)
-		assert.False(t, services[1].Type.IsPointer)
-		assert.True(t, services[1].HasSetter)
-		assert.True(t, services[1].HasCloser)
-		assert.True(t, services[1].IsRequired)
-		assert.True(t, services[1].IsPublic)
-		assert.True(t, services[1].IsExternal)
+	assert.Equal(t, "Configuration", services[0].Name)
+	assert.Equal(t, "config", services[0].Type.Package)
+	assert.Equal(t, "Configuration", services[0].Type.Name)
+	assert.False(t, services[0].Type.IsPointer)
+	assert.False(t, services[0].HasSetter)
+	assert.False(t, services[0].HasCloser)
+	assert.False(t, services[0].IsRequired)
+	assert.False(t, services[0].IsPublic)
+	assert.False(t, services[0].IsExternal)
 
-		assert.Equal(t, "Handler", services[2].Name)
-		assert.Equal(t, "httpadapter", services[2].Type.Package)
-		assert.Equal(t, "GetEntityHandler", services[2].Type.Name)
-		assert.Equal(t, "http_handler.go", services[2].FactoryFileName)
-		assert.True(t, services[2].Type.IsPointer)
-		assert.False(t, services[2].HasSetter)
-		assert.False(t, services[2].HasCloser)
-		assert.False(t, services[2].IsRequired)
-		assert.False(t, services[2].IsPublic)
-		assert.False(t, services[2].IsExternal)
-	}
+	assert.Equal(t, "EntityRepository", services[1].Name)
+	assert.Equal(t, "domain", services[1].Type.Package)
+	assert.Equal(t, "EntityRepository", services[1].Type.Name)
+	assert.False(t, services[1].Type.IsPointer)
+	assert.True(t, services[1].HasSetter)
+	assert.True(t, services[1].HasCloser)
+	assert.True(t, services[1].IsRequired)
+	assert.True(t, services[1].IsPublic)
+	assert.True(t, services[1].IsExternal)
+
+	assert.Equal(t, "Handler", services[2].Name)
+	assert.Equal(t, "httpadapter", services[2].Type.Package)
+	assert.Equal(t, "GetEntityHandler", services[2].Type.Name)
+	assert.Equal(t, "http_handler.go", services[2].FactoryFileName)
+	assert.True(t, services[2].Type.IsPointer)
+	assert.False(t, services[2].HasSetter)
+	assert.False(t, services[2].HasCloser)
+	assert.False(t, services[2].IsRequired)
+	assert.False(t, services[2].IsPublic)
+	assert.False(t, services[2].IsExternal)
+
+	assert.Equal(t, "Router", services[3].Name)
+	assert.Equal(t, "APIRouter", services[3].PublicName)
+	assert.Equal(t, "http", services[3].Type.Package)
+	assert.Equal(t, "Handler", services[3].Type.Name)
+	assert.Equal(t, "", services[3].FactoryFileName)
+	assert.False(t, services[3].Type.IsPointer)
+	assert.False(t, services[3].HasSetter)
+	assert.False(t, services[3].HasCloser)
+	assert.False(t, services[3].IsRequired)
+	assert.False(t, services[3].IsPublic)
+	assert.False(t, services[3].IsExternal)
 }
 
 func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {

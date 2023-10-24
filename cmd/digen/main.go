@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/carlmjohnson/versioninfo"
 	"github.com/pterm/pterm"
 	"github.com/strider2038/digen/internal/console"
 )
@@ -13,6 +14,10 @@ var (
 )
 
 func main() {
+	if version == "" {
+		version = versioninfo.Short()
+		date = versioninfo.LastCommit.String()
+	}
 	err := console.Execute(
 		console.Version(version),
 		console.BuildTime(date),

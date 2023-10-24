@@ -292,7 +292,8 @@ func parseFieldTags(field *ast.Field) Tags {
 
 	return Tags{
 		Options:         strings.Split(tag.Get("di"), ","),
-		FactoryFilename: tag.Get("factory-file"),
+		FactoryFilename: tag.Get("factory_file"),
+		PublicName:      tag.Get("public_name"),
 	}
 }
 

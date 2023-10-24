@@ -40,12 +40,15 @@ type ServiceDefinition struct {
 	Name   string
 	Type   TypeDefinition
 
-	FactoryFileName string // "factory-file" tag
-	HasSetter       bool   // "set" tag - will generate setters for internal and public containers
-	HasCloser       bool   // "close" tag - generate closer method call
-	IsRequired      bool   // "required" tag - will generate argument for public container constructor
-	IsPublic        bool   // "public" tag - will generate getter for public container
-	IsExternal      bool   // "external" tag - no definition, panic if empty, force public setter
+	FactoryFileName string // "factory_file" tag
+	PublicName      string // "public_name" tag
+
+	// options from tag "di"
+	HasSetter  bool // "set" tag - will generate setters for internal and public containers
+	HasCloser  bool // "close" tag - generate closer method call
+	IsRequired bool // "required" tag - will generate argument for public container constructor
+	IsPublic   bool // "public" tag - will generate getter for public container
+	IsExternal bool // "external" tag - no definition, panic if empty, force public setter
 }
 
 func (s ServiceDefinition) Title() string {
@@ -60,6 +63,7 @@ func newServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefi
 		Name:            name,
 		Type:            typeDef,
 		FactoryFileName: tags.FactoryFilename,
+		PublicName:      tags.PublicName,
 	}
 	if definition.FactoryFileName != "" {
 		definition.FactoryFileName += ".go"
@@ -120,4 +124,5 @@ type FactoryFile struct {
 type Tags struct {
 	Options         []string
 	FactoryFilename string
+	PublicName      string
 }

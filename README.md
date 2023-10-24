@@ -42,7 +42,13 @@ After any update run `digen generate` command to generate container and factorie
 
 ### Service definition options
 
-To set up service definition options use tags:
+To set up service definition use tags:
+
+* tag `di` for quick options;
+* tag `factory_name` to set up factory filename (without extension);
+* tag `public_name` to override service getter for public container.
+
+To set up quick options use tag `di` with combination of values:
 
 * `set` - to generate setters for internal and public containers;
 * `close` - to generate closer method call;
@@ -99,10 +105,11 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [x] move contracts into separate package
 * [x] generate README.md for root package
 * [x] ability to choose specific file for factory func
+* [x] ability to set public definition name
+* [ ] check app version in config
 * [ ] custom close functions
 * [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository
-* [ ] ability to set definition name
 * [ ] multi container config
 * [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
