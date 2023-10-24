@@ -2,16 +2,19 @@
 
 ## Installation
 
+### Install on Linux
+
+```shell
+# binary will be $(go env GOPATH)/bin/digen
+sh -c "$(curl --location https://raw.githubusercontent.com/strider2038/digen/master/install.sh)" -- -d -b $(go env GOPATH)/bin
+digen version
+```
+
 ### Go installer
 
 ```shell
 go install github.com/strider2038/digen/cmd/digen@latest
-```
-
-### Install on linux
-
-```shell
-sh -c "$(curl --location https://raw.githubusercontent.com/strider2038/digen/master/install.sh)" -- -d -b /usr/local/bin
+digen version
 ```
 
 ## How to use
