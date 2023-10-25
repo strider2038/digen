@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"github.com/muonsoft/errors"

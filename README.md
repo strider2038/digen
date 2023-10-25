@@ -106,7 +106,7 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [x] generate README.md for root package
 * [x] ability to choose specific file for factory func
 * [x] ability to set public definition name
-* [ ] check app version in config
+* [x] check app version in config
 * [ ] custom close functions
 * [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository

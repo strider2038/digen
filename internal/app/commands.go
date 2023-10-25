@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"fmt"
@@ -66,6 +66,9 @@ func newGenerateCommand(options *Options) *cobra.Command {
 			err := config.ReadInConfig()
 			if err != nil {
 				return errors.Errorf("read config: %w", err)
+			}
+			if err := checkVersion(config.GetString("app_version"), Version); err != nil {
+				return err
 			}
 
 			generator, err := newGenerator(options, config)

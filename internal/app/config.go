@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"io/fs"
@@ -43,6 +43,7 @@ func initConfig(config *viper.Viper) error {
 		return err
 	}
 
+	config.Set("app_version", Version)
 	config.Set("di.dir", dir)
 	err = config.SafeWriteConfig()
 	if err != nil {

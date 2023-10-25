@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"github.com/pterm/pterm"
