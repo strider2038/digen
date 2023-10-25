@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"github.com/pterm/pterm"
@@ -6,20 +6,13 @@ import (
 	"github.com/strider2038/digen/internal/di"
 )
 
-func newGenerator(options *Options, config *viper.Viper) (*di.Generator, error) {
-	dir := config.GetString("di.dir")
-	if dir == "" {
-		dir = config.GetString("work_dir")
-	}
-
-	generator := &di.Generator{
-		BaseDir:   dir,
+func newGenerator(options *Options, config *viper.Viper) *di.Generator {
+	return &di.Generator{
+		BaseDir:   config.GetString("di.dir"),
 		Version:   options.Version,
 		BuildTime: options.BuildTime,
 		Logger:    terminalLogger{},
 	}
-
-	return generator, nil
 }
 
 type terminalLogger struct{}

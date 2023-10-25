@@ -5,7 +5,7 @@ import (
 
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/pterm/pterm"
-	"github.com/strider2038/digen/internal/console"
+	"github.com/strider2038/digen/internal/app"
 )
 
 var (
@@ -18,9 +18,9 @@ func main() {
 		version = versioninfo.Short()
 		date = versioninfo.LastCommit.String()
 	}
-	err := console.Execute(
-		console.Version(version),
-		console.BuildTime(date),
+	err := app.Execute(
+		app.SetVersion(version),
+		app.SetBuildTime(date),
 	)
 	if err != nil {
 		pterm.Error.Println(err)

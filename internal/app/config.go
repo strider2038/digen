@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"io/fs"
@@ -28,7 +28,7 @@ func initConfig(config *viper.Viper) error {
 	}
 
 	prompt := promptui.Prompt{
-		Label: "enter path to work directory",
+		Label: "enter path to working directory",
 		Validate: func(path string) error {
 			if fs.ValidPath(path) {
 				return nil
@@ -43,6 +43,7 @@ func initConfig(config *viper.Viper) error {
 		return err
 	}
 
+	config.Set("app_version", Version)
 	config.Set("di.dir", dir)
 	err = config.SafeWriteConfig()
 	if err != nil {

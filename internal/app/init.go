@@ -1,4 +1,4 @@
-package console
+package app
 
 import (
 	"github.com/muonsoft/errors"
@@ -18,10 +18,5 @@ func runInit(options *Options) error {
 		}
 	}
 
-	generator, err := newGenerator(options, config)
-	if err != nil {
-		return err
-	}
-
-	return generator.Initialize()
+	return newGenerator(options, config).Initialize()
 }
