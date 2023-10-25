@@ -67,7 +67,7 @@ func newGenerateCommand(options *Options) *cobra.Command {
 			if err != nil {
 				return errors.Errorf("read config: %w", err)
 			}
-			if err := checkVersion(config.GetString("app_version"), Version); err != nil {
+			if err := checkVersion(config.GetString(configAppVersion), Version); err != nil {
 				return err
 			}
 

@@ -10,6 +10,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	configAppVersion   = "app_version"
+	configContainerDir = "container.dir"
+)
+
 var errInvalidPath = errors.New("invalid path")
 
 func newConfig() *viper.Viper {
@@ -28,7 +33,8 @@ func initConfig(config *viper.Viper) error {
 	}
 
 	prompt := promptui.Prompt{
-		Label: "enter path to working directory",
+		Label:   "enter path to working directory",
+		Default: "di",
 		Validate: func(path string) error {
 			if fs.ValidPath(path) {
 				return nil
@@ -43,8 +49,8 @@ func initConfig(config *viper.Viper) error {
 		return err
 	}
 
-	config.Set("app_version", Version)
-	config.Set("di.dir", dir)
+	config.Set(configAppVersion, Version)
+	config.Set(configContainerDir, dir)
 	err = config.SafeWriteConfig()
 	if err != nil {
 		return errors.Errorf("write config: %w", err)

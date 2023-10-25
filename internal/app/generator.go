@@ -8,7 +8,7 @@ import (
 
 func newGenerator(options *Options, config *viper.Viper) *di.Generator {
 	return &di.Generator{
-		BaseDir:   config.GetString("di.dir"),
+		BaseDir:   config.GetString(configContainerDir),
 		Version:   options.Version,
 		BuildTime: options.BuildTime,
 		Logger:    terminalLogger{},
