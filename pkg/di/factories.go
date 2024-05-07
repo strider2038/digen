@@ -2,6 +2,7 @@ package di
 
 import (
 	"go/ast"
+	"slices"
 	"strings"
 )
 
@@ -99,6 +100,39 @@ type TypeDefinition struct {
 	Name      string
 }
 
+var basicTypes = []string{
+	"string",
+	"int",
+	"uint",
+	"uint8",
+	"uint16",
+	"uint32",
+	"uint64",
+	"int8",
+	"int16",
+	"int32",
+	"int64",
+	"float32",
+	"float64",
+	"bool",
+}
+
+func (d TypeDefinition) IsBasicType() bool {
+	return d.Package == "" && slices.Contains(basicTypes, d.Name)
+}
+
+func (d TypeDefinition) IsTime() bool {
+	return d.Package == "time" && d.Name == "Time"
+}
+
+func (d TypeDefinition) IsDuration() bool {
+	return d.Package == "time" && d.Name == "Duration"
+}
+
+func (d TypeDefinition) IsURL() bool {
+	return d.Package == "url" && d.Name == "URL"
+}
+
 func (d TypeDefinition) String() string {
 	var s strings.Builder
 
@@ -106,10 +140,47 @@ func (d TypeDefinition) String() string {
 		s.WriteString("*")
 	}
 	s.WriteString(d.Package)
-	s.WriteString(".")
+	if d.Package != "" {
+		s.WriteString(".")
+	}
 	s.WriteString(d.Name)
 
 	return s.String()
+}
+
+func (d TypeDefinition) ZeroComparison() string {
+	if d.IsPointer {
+		return " == nil"
+	}
+	if d.IsBasicType() {
+		return d.basicZeroComparison()
+	}
+	if d.IsTime() {
+		return ".IsZero()"
+	}
+	if d.IsDuration() {
+		return " == 0"
+	}
+	if d.IsURL() {
+		return " == url.URL{}"
+	}
+
+	return " == nil"
+}
+
+func (d TypeDefinition) basicZeroComparison() string {
+	switch d.Name {
+	case "bool":
+		return " == false"
+	case "string":
+		return " == \"\""
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
+		return " == 0"
+	case "float32", "float64":
+		return " == 0.0"
+	default:
+		return " == nil"
+	}
 }
 
 type FactoryFile struct {

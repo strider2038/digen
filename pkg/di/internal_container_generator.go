@@ -139,13 +139,14 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 		g.importService(service)
 
 		parameters := templateParameters{
-			ContainerName: containerName,
-			ServicePrefix: strings.Title(service.Prefix),
-			ServiceName:   strcase.ToLowerCamel(service.Name),
-			ServiceTitle:  service.Title(),
-			ServiceType:   service.Type.String(),
-			HasDefinition: !service.IsRequired,
-			PanicOnNil:    service.IsExternal,
+			ContainerName:         containerName,
+			ServicePrefix:         strings.Title(service.Prefix),
+			ServiceName:           strcase.ToLowerCamel(service.Name),
+			ServiceTitle:          service.Title(),
+			ServiceType:           service.Type.String(),
+			ServiceZeroComparison: service.Type.ZeroComparison(),
+			HasDefinition:         !service.IsRequired,
+			PanicOnNil:            service.IsExternal,
 		}
 		err := g.writeGetter(parameters, service)
 		if err != nil {
