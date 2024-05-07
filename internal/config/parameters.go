@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"io/fs"
@@ -10,9 +10,39 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Parameters struct {
+	AppVersion string     `json:"app_version" yaml:"app_version"`
+	Containers Containers `json:"containers" yaml:"containers"`
+}
+
+type Containers struct {
+	Dir string `json:"dir" yaml:"dir"`
+}
+
+func Load() (*Parameters, error) {
+	config := newConfig()
+	err := config.ReadInConfig()
+	if err != nil {
+		return nil, errors.Errorf("read config: %w", err)
+	}
+}
+
+func Init() (*Parameters, error) {
+	config := newConfig()
+	err := config.ReadInConfig()
+	if err != nil {
+		if errors.IsOfType[viper.ConfigFileNotFoundError](err) {
+			if err := initConfig(config); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, errors.Errorf("read config: %w", err)
+		}
+	}
+}
+
 const (
-	configAppVersion   = "app_version"
-	configContainerDir = "container.dir"
+	configAppVersion = "app_version"
 )
 
 var errInvalidPath = errors.New("invalid path")

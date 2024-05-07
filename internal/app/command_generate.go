@@ -1,10 +1,20 @@
 package app
 
 import (
+	"github.com/muonsoft/errors"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
 	"github.com/strider2038/digen/internal/di"
 )
+
+func runGenerate(options *Options) error {
+
+	if err := checkVersion(config.GetString(configAppVersion), Version); err != nil {
+		return err
+	}
+
+	return newGenerator(options, config).Generate()
+}
 
 func newGenerator(options *Options, config *viper.Viper) *di.Generator {
 	return &di.Generator{

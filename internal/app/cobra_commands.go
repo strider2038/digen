@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 
-	"github.com/muonsoft/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +45,7 @@ func newVersionCommand(options *Options) *cobra.Command {
 func newInitCommand(options *Options) *cobra.Command {
 	return &cobra.Command{
 		Use:           "init",
-		Short:         "Generates skeleton for internal container",
+		Short:         "Generates skeleton for Dependency Injection Containers",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -58,20 +57,11 @@ func newInitCommand(options *Options) *cobra.Command {
 func newGenerateCommand(options *Options) *cobra.Command {
 	return &cobra.Command{
 		Use:           "generate",
-		Short:         "Generates Dependency Injection Container",
+		Short:         "Generates Dependency Injection Containers",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config := newConfig()
-			err := config.ReadInConfig()
-			if err != nil {
-				return errors.Errorf("read config: %w", err)
-			}
-			if err := checkVersion(config.GetString(configAppVersion), Version); err != nil {
-				return err
-			}
-
-			return newGenerator(options, config).Generate()
+			return runGenerate(options)
 		},
 	}
 }
