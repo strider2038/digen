@@ -56,6 +56,10 @@ func NewFileBuilder(filename, packageName string, packageType PackageType) *File
 }
 
 func (b *FileBuilder) AddImport(imp string) {
+	if imp == "" {
+		return
+	}
+
 	for _, existingImport := range b.imports {
 		if existingImport == imp {
 			return

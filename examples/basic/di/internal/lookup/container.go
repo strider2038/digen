@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Container interface {
@@ -24,9 +25,16 @@ type Container interface {
 	DB(ctx context.Context) *sql.DB
 	Server(ctx context.Context) *http.Server
 
+	Params() ParamsContainer
 	API() APIContainer
 	UseCases() UseCaseContainer
 	Repositories() RepositoryContainer
+}
+
+type ParamsContainer interface {
+	ServerPort(ctx context.Context) int
+	ServerHost(ctx context.Context) string
+	RequestTimeout(ctx context.Context) time.Duration
 }
 
 type APIContainer interface {

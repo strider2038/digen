@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"time"
 
 	"basic/app/config"
 	"basic/app/domain"
@@ -20,9 +21,16 @@ type Container struct {
 
 	Server *http.Server `di:"public,close" factory-file:"server"`
 
+	Params       ParamsContainer
 	API          APIContainer
 	UseCases     UseCaseContainer
 	Repositories RepositoryContainer
+}
+
+type ParamsContainer struct {
+	ServerPort     int
+	ServerHost     string
+	RequestTimeout time.Duration
 }
 
 type APIContainer struct {

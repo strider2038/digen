@@ -9,14 +9,15 @@ import (
 var readmeTemplate string
 
 type templateParameters struct {
-	ContainerName string
-	ServicePrefix string
-	ServicePath   string
-	ServiceName   string
-	ServiceTitle  string
-	ServiceType   string
-	HasDefinition bool
-	PanicOnNil    bool
+	ContainerName         string
+	ServicePrefix         string
+	ServicePath           string
+	ServiceName           string
+	ServiceTitle          string
+	ServiceType           string
+	ServiceZeroComparison string
+	HasDefinition         bool
+	PanicOnNil            bool
 }
 
 type internalContainerTemplateParameters struct {
@@ -70,7 +71,7 @@ func (c *Container) SetError(err error) {
 
 var getterTemplate = template.Must(template.New("getter").Parse(`
 func (c *{{.ContainerName}}) {{.ServiceTitle}}(ctx context.Context) {{.ServiceType}} {
-{{ if .HasDefinition }}	if c.{{.ServiceName}} == nil && c.err == nil {
+{{ if .HasDefinition }}	if c.{{.ServiceName}}{{.ServiceZeroComparison}} && c.err == nil {
 		{{ if .PanicOnNil }}panic("missing {{.ServiceTitle}}"){{ else }}c.{{.ServiceName}} = factories.Create{{.ServicePrefix}}{{.ServiceTitle}}(ctx, c){{ end }}
 	}
 {{ end }}	return c.{{.ServiceName}}
