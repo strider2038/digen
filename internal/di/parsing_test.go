@@ -27,6 +27,11 @@ type Container struct {
 
 	Router http.Handler ` + "`public_name:\"APIRouter\"`" + `
 
+	StringOption   string
+	IntOption      int
+	DurationOption time.Duration
+	StringPointer  *string
+
 	UseCase UseCaseContainer
 }
 
@@ -111,7 +116,7 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 }
 
 func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
-	require.Len(t, services, 4)
+	require.Len(t, services, 7)
 
 	assert.Equal(t, "Configuration", services[0].Name)
 	assert.Equal(t, "config", services[0].Type.Package)
@@ -144,17 +149,30 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 	assert.False(t, services[2].IsPublic)
 	assert.False(t, services[2].IsExternal)
 
-	assert.Equal(t, "Router", services[3].Name)
-	assert.Equal(t, "APIRouter", services[3].PublicName)
-	assert.Equal(t, "http", services[3].Type.Package)
-	assert.Equal(t, "Handler", services[3].Type.Name)
-	assert.Equal(t, "", services[3].FactoryFileName)
+	assert.Equal(t, "StringOption", services[3].Name)
+	assert.True(t, services[3].Type.IsBasicType())
 	assert.False(t, services[3].Type.IsPointer)
-	assert.False(t, services[3].HasSetter)
-	assert.False(t, services[3].HasCloser)
-	assert.False(t, services[3].IsRequired)
-	assert.False(t, services[3].IsPublic)
-	assert.False(t, services[3].IsExternal)
+	assert.Equal(t, "", services[3].Type.Package)
+	assert.Equal(t, "string", services[3].Type.Name)
+
+	assert.Equal(t, "IntOption", services[4].Name)
+	assert.True(t, services[4].Type.IsBasicType())
+	assert.False(t, services[4].Type.IsPointer)
+	assert.Equal(t, "", services[4].Type.Package)
+	assert.Equal(t, "int", services[4].Type.Name)
+
+	assert.Equal(t, "DurationOption", services[5].Name)
+	assert.True(t, services[5].Type.IsDuration())
+	assert.False(t, services[5].Type.IsPointer)
+	assert.Equal(t, "time", services[5].Type.Package)
+	assert.Equal(t, "Duration", services[5].Type.Name)
+
+	assert.Equal(t, "StringPointer", services[6].Name)
+	assert.True(t, services[6].Type.IsBasicType())
+	assert.True(t, services[6].Type.IsPointer)
+	assert.Equal(t, "", services[6].Type.Package)
+	assert.Equal(t, "string", services[6].Type.Name)
+
 }
 
 func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {

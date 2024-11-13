@@ -1,0 +1,81 @@
+package internal
+
+import (
+	"context"
+	"time"
+	"net/url"
+	"example.com/test/di/internal/factories"
+)
+
+type Container struct {
+	err error
+
+	stringOption string
+	stringPointer *string
+	intOption int
+	timeOption time.Time
+	durationOption time.Duration
+	urloption url.URL
+}
+
+func NewContainer() *Container {
+	c := &Container{}
+
+	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err == nil {
+		c.err = err
+	}
+}
+
+func (c *Container) StringOption(ctx context.Context) string {
+	if c.stringOption == "" && c.err == nil {
+		c.stringOption = factories.CreateStringOption(ctx, c)
+	}
+	return c.stringOption
+}
+
+func (c *Container) StringPointer(ctx context.Context) *string {
+	if c.stringPointer == nil && c.err == nil {
+		c.stringPointer = factories.CreateStringPointer(ctx, c)
+	}
+	return c.stringPointer
+}
+
+func (c *Container) IntOption(ctx context.Context) int {
+	if c.intOption == 0 && c.err == nil {
+		c.intOption = factories.CreateIntOption(ctx, c)
+	}
+	return c.intOption
+}
+
+func (c *Container) TimeOption(ctx context.Context) time.Time {
+	if c.timeOption.IsZero() && c.err == nil {
+		c.timeOption = factories.CreateTimeOption(ctx, c)
+	}
+	return c.timeOption
+}
+
+func (c *Container) DurationOption(ctx context.Context) time.Duration {
+	if c.durationOption == 0 && c.err == nil {
+		c.durationOption = factories.CreateDurationOption(ctx, c)
+	}
+	return c.durationOption
+}
+
+func (c *Container) URLOption(ctx context.Context) url.URL {
+	if c.urloption == url.URL{} && c.err == nil {
+		c.urloption = factories.CreateURLOption(ctx, c)
+	}
+	return c.urloption
+}
+
+func (c *Container) Close() {}

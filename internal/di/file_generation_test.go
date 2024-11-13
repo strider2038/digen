@@ -1,6 +1,7 @@
 package di_test
 
 import (
+	_ "embed"
 	"fmt"
 	"testing"
 
@@ -165,6 +166,50 @@ func TestGenerate(t *testing.T) {
 
 				require.GreaterOrEqual(t, len(files), 1)
 				assert.Equal(t, singleContainerWithStaticTypeInternalContainer, string(files[0].Content))
+			},
+		},
+		{
+			name: "single container with basic types",
+			container: &di.RootContainerDefinition{
+				Name:    "Container",
+				Package: "testpkg",
+				Imports: map[string]*di.ImportDefinition{
+					"time": {Path: `"time"`},
+					"url":  {Path: `"net/url"`},
+				},
+				Services: []*di.ServiceDefinition{
+					{
+						Name: "StringOption",
+						Type: di.TypeDefinition{Name: "string"},
+					},
+					{
+						Name: "StringPointer",
+						Type: di.TypeDefinition{IsPointer: true, Name: "string"},
+					},
+					{
+						Name: "IntOption",
+						Type: di.TypeDefinition{Name: "int"},
+					},
+					{
+						Name: "TimeOption",
+						Type: di.TypeDefinition{Package: "time", Name: "Time"},
+					},
+					{
+						Name: "DurationOption",
+						Type: di.TypeDefinition{Package: "time", Name: "Duration"},
+					},
+					{
+						Name: "URLOption",
+						Type: di.TypeDefinition{Package: "url", Name: "URL"},
+					},
+				},
+			},
+			assert: func(t *testing.T, files []*di.File) {
+				t.Helper()
+
+				require.GreaterOrEqual(t, len(files), 1)
+				got := string(files[0].Content)
+				assert.Equal(t, singleContainerWithBasicTypes, got)
 			},
 		},
 		{
@@ -719,6 +764,9 @@ func (c *Container) SetConfiguration(s config.Configuration) {
 
 func (c *Container) Close() {}
 `
+
+//go:embed testdata/single_container_with_basic_types.txt
+var singleContainerWithBasicTypes string
 
 const singleContainerWithCloserInternalContainer = `package internal
 

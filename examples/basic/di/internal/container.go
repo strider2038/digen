@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Container struct {
@@ -25,6 +26,7 @@ type Container struct {
 	db     *sql.DB
 	server *http.Server
 
+	params       *ParamsContainer
 	api          *APIContainer
 	useCases     *UseCaseContainer
 	repositories *RepositoryContainer
@@ -32,6 +34,7 @@ type Container struct {
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.params = &ParamsContainer{Container: c}
 	c.api = &APIContainer{Container: c}
 	c.useCases = &UseCaseContainer{Container: c}
 	c.repositories = &RepositoryContainer{Container: c}
@@ -49,6 +52,14 @@ func (c *Container) SetError(err error) {
 	if err != nil && c.err == nil {
 		c.err = err
 	}
+}
+
+type ParamsContainer struct {
+	*Container
+
+	serverPort     int
+	serverHost     string
+	requestTimeout time.Duration
 }
 
 type APIContainer struct {
@@ -92,6 +103,31 @@ func (c *Container) Server(ctx context.Context) *http.Server {
 		c.server = factories.CreateServer(ctx, c)
 	}
 	return c.server
+}
+
+func (c *Container) Params() lookup.ParamsContainer {
+	return c.params
+}
+
+func (c *ParamsContainer) ServerPort(ctx context.Context) int {
+	if c.serverPort == 0 && c.err == nil {
+		c.serverPort = factories.CreateParamsServerPort(ctx, c)
+	}
+	return c.serverPort
+}
+
+func (c *ParamsContainer) ServerHost(ctx context.Context) string {
+	if c.serverHost == "" && c.err == nil {
+		c.serverHost = factories.CreateParamsServerHost(ctx, c)
+	}
+	return c.serverHost
+}
+
+func (c *ParamsContainer) RequestTimeout(ctx context.Context) time.Duration {
+	if c.requestTimeout == 0 && c.err == nil {
+		c.requestTimeout = factories.CreateParamsRequestTimeout(ctx, c)
+	}
+	return c.requestTimeout
 }
 
 func (c *Container) API() lookup.APIContainer {
