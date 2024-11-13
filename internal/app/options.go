@@ -1,10 +1,9 @@
 package app
 
 type Options struct {
-	Version           string
-	BuildTime         string
-	DryRun            bool
-	overrideArguments bool
+	Version   string
+	BuildTime string
+	DryRun    bool
 }
 
 type OptionFunc func(options *Options)

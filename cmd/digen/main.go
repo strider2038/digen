@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/carlmjohnson/versioninfo"
+	"github.com/earthboundkid/versioninfo/v2"
 	"github.com/pterm/pterm"
 	"github.com/strider2038/digen/internal/app"
 )

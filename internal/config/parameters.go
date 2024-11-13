@@ -10,12 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+var errInvalidPath = errors.New("invalid path")
+
 type Parameters struct {
-	AppVersion string     `json:"app_version" yaml:"app_version"`
-	Containers Containers `json:"containers" yaml:"containers"`
+	Version   string    `json:"version" yaml:"version"`
+	Container Container `json:"container" yaml:"container"`
 }
 
-type Containers struct {
+type Container struct {
 	Dir string `json:"dir" yaml:"dir"`
 }
 
@@ -25,6 +27,8 @@ func Load() (*Parameters, error) {
 	if err != nil {
 		return nil, errors.Errorf("read config: %w", err)
 	}
+
+	return readParameters(config)
 }
 
 func Init() (*Parameters, error) {
@@ -39,13 +43,21 @@ func Init() (*Parameters, error) {
 			return nil, errors.Errorf("read config: %w", err)
 		}
 	}
+
+	return readParameters(config)
 }
 
-const (
-	configAppVersion = "app_version"
-)
+func readParameters(config *viper.Viper) (*Parameters, error) {
+	var parameters Parameters
+	if err := config.Unmarshal(&parameters); err != nil {
+		return nil, errors.Errorf("unmarshal config: %w", err)
+	}
+	if err := checkVersion(parameters.Version); err != nil {
+		return nil, err
+	}
 
-var errInvalidPath = errors.New("invalid path")
+	return &parameters, nil
+}
 
 func newConfig() *viper.Viper {
 	config := viper.New()
@@ -79,8 +91,8 @@ func initConfig(config *viper.Viper) error {
 		return err
 	}
 
-	config.Set(configAppVersion, Version)
-	config.Set(configContainerDir, dir)
+	config.Set("version", Version)
+	config.Set("container.dir", dir)
 	err = config.SafeWriteConfig()
 	if err != nil {
 		return errors.Errorf("write config: %w", err)

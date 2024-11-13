@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"github.com/muonsoft/errors"
@@ -7,18 +7,22 @@ import (
 
 const Version = "v0.1"
 
-func checkVersion(configVersion, appVersion string) error {
-	compare := semver.Compare(configVersion, appVersion)
+func checkVersion(configVersion string) error {
+	if configVersion == "" {
+		configVersion = "(unknown)"
+	}
+
+	compare := semver.Compare(configVersion, Version)
 	if compare < 0 {
 		return errors.Errorf(
 			"config version %s is outdated, please upgrade your config file to match application %s",
-			configVersion, appVersion,
+			configVersion, Version,
 		)
 	}
 	if compare > 0 {
 		return errors.Errorf(
 			"application version %s is outdated (config requires %s), please update the application",
-			appVersion, configVersion,
+			Version, configVersion,
 		)
 	}
 

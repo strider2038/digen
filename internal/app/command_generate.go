@@ -3,22 +3,22 @@ package app
 import (
 	"github.com/muonsoft/errors"
 	"github.com/pterm/pterm"
-	"github.com/spf13/viper"
+	"github.com/strider2038/digen/internal/config"
 	"github.com/strider2038/digen/internal/di"
 )
 
 func runGenerate(options *Options) error {
-
-	if err := checkVersion(config.GetString(configAppVersion), Version); err != nil {
-		return err
+	params, err := config.Load()
+	if err != nil {
+		return errors.Errorf("load config: %w", err)
 	}
 
-	return newGenerator(options, config).Generate()
+	return newGenerator(options, params).Generate()
 }
 
-func newGenerator(options *Options, config *viper.Viper) *di.Generator {
+func newGenerator(options *Options, params *config.Parameters) *di.Generator {
 	return &di.Generator{
-		BaseDir:   config.GetString(configContainerDir),
+		BaseDir:   params.Container.Dir,
 		Version:   options.Version,
 		BuildTime: options.BuildTime,
 		Logger:    terminalLogger{},
