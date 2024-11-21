@@ -3,6 +3,9 @@ package di
 import (
 	"bytes"
 	"go/format"
+
+	"github.com/dave/jennifer/jen"
+	"github.com/muonsoft/errors"
 )
 
 type PackageType int
@@ -40,6 +43,7 @@ func (f *File) Path() string {
 }
 
 type FileBuilder struct {
+	file        *jen.File
 	fileName    string
 	packageName string
 	packageType PackageType
@@ -49,6 +53,7 @@ type FileBuilder struct {
 
 func NewFileBuilder(filename, packageName string, packageType PackageType) *FileBuilder {
 	return &FileBuilder{
+		file:        jen.NewFile(packageName),
 		fileName:    filename,
 		packageName: packageName,
 		packageType: packageType,
@@ -77,24 +82,27 @@ func (b *FileBuilder) WriteString(s string) (n int, err error) {
 	return b.body.WriteString(s)
 }
 
-func (b *FileBuilder) IsEmpty() bool {
-	return b.body.Len() == 0
+func (b *FileBuilder) Add(code ...jen.Code) *jen.Statement {
+	return b.file.Add(code...)
 }
 
-func (b *FileBuilder) GetFile() *File {
+func (b *FileBuilder) GetFile() (*File, error) {
 	var buffer bytes.Buffer
-
-	buffer.WriteString("package " + b.packageName + "\n\n")
-
-	if len(b.imports) > 0 {
-		buffer.WriteString("import (\n")
-		for _, imp := range b.imports {
-			buffer.WriteString("\t" + imp + "\n")
-		}
-		buffer.WriteString(")\n")
+	//
+	//buffer.WriteString("package " + b.packageName + "\n\n")
+	//
+	//if len(b.imports) > 0 {
+	//	buffer.WriteString("import (\n")
+	//	for _, imp := range b.imports {
+	//		buffer.WriteString("\t" + imp + "\n")
+	//	}
+	//	buffer.WriteString(")\n")
+	//}
+	//
+	//b.body.WriteTo(&buffer)
+	if err := b.file.Render(&buffer); err != nil {
+		return nil, errors.Errorf("render %s: %w", b.fileName, err)
 	}
-
-	b.body.WriteTo(&buffer)
 
 	content, err := format.Source(buffer.Bytes())
 	if err != nil {
@@ -105,5 +113,5 @@ func (b *FileBuilder) GetFile() *File {
 		Package: b.packageType,
 		Name:    b.fileName,
 		Content: content,
-	}
+	}, nil
 }

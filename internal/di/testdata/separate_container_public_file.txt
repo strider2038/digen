@@ -1,0 +1,59 @@
+package di
+
+import (
+	"context"
+	internal "example.com/test/di/internal"
+	domain "example.com/test/domain"
+	"sync"
+)
+
+type Container struct {
+	mu *sync.Mutex
+	c  *internal.Container
+}
+
+type Injector func(c *Container) error
+
+func NewContainer(injectors ...Injector) (*Container, error) {
+	c := &Container{
+		c:  internal.NewContainer(),
+		mu: &sync.Mutex{},
+	}
+
+	for _, inject := range injectors {
+		err := inject(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
+func (c *Container) FirstService(ctx context.Context) (*domain.Service, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.InternalContainerName().(*internal.InternalContainerType).FirstService(ctx)
+	err := c.c.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return s, err
+}
+
+func SetSecondService(s *domain.Service) Injector {
+	return func(c *Container) error {
+		c.c.InternalContainerName().(*internal.InternalContainerType).SetSecondService(s)
+
+		return nil
+	}
+}
+
+func (c *Container) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.c.Close()
+}

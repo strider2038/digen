@@ -53,7 +53,11 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 			}
 		}
 
-		files = append(files, file.GetFile())
+		content, err := file.GetFile()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, content)
 	}
 
 	return files, nil

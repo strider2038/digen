@@ -184,7 +184,6 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 	assert.True(t, services[7].Type.IsPointer)
 	assert.Equal(t, "", services[7].Type.Package)
 	assert.Equal(t, "string", services[7].Type.Name)
-
 }
 
 func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {

@@ -1,12 +1,10 @@
 package di
 
 import (
-	"bytes"
-	"fmt"
 	"strings"
 
+	"github.com/dave/jennifer/jen"
 	"github.com/iancoleman/strcase"
-	"github.com/muonsoft/errors"
 )
 
 type InternalContainerGenerator struct {
@@ -25,232 +23,204 @@ func NewInternalContainerGenerator(container *RootContainerDefinition, params Ge
 }
 
 func (g *InternalContainerGenerator) Generate() (*File, error) {
-	generators := [...]func() error{
-		g.generateRootContainer,
-		g.generateContainers,
-		g.generateGetters,
-		g.generateSetters,
-		g.generateClosers,
-	}
+	g.generateRootContainer()
+	g.generateContainers()
+	g.generateGetters()
+	g.generateSetters()
+	g.generateClosers()
 
-	for _, generate := range generators {
-		err := generate()
-		if err != nil {
-			return nil, err
-		}
-	}
+	// todo: remove
+	//fmt.Printf("%#v", g.file.file)
 
-	return g.file.GetFile(), nil
+	return g.file.GetFile()
 }
 
-func (g *InternalContainerGenerator) generateRootContainer() error {
-	g.file.AddImport(`"context"`)
-
-	var body bytes.Buffer
+func (g *InternalContainerGenerator) generateRootContainer() {
+	fields := make([]jen.Code, 0, len(g.container.Services)+len(g.container.Containers)+1)
+	fields = append(fields, jen.Id("err").Error(), jen.Line())
 	for _, service := range g.container.Services {
-		g.importService(service)
-		body.WriteString(fmt.Sprintf("\n\t%s %s", strcase.ToLowerCamel(service.Name), service.Type.String()))
-	}
-
-	if len(g.container.Containers) > 0 {
-		g.file.AddImport(g.params.packageName(LookupPackage))
-		body.WriteString("\n")
-	}
-
-	var constructor bytes.Buffer
-	for _, container := range g.container.Containers {
-		body.WriteString(fmt.Sprintf(
-			"\n\t%s *%s",
-			strcase.ToLowerCamel(container.Name), container.Type.Name,
-		))
-		constructor.WriteString(fmt.Sprintf(
-			"\tc.%s = &%s{Container: c}\n",
-			strcase.ToLowerCamel(container.Name), container.Type.Name),
+		fields = append(fields, jen.
+			Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)),
 		)
 	}
 
-	err := internalContainerTemplate.Execute(g.file, internalContainerTemplateParameters{
-		ContainerBody:        body.String(),
-		ContainerConstructor: constructor.String(),
-	})
-	if err != nil {
-		return errors.Errorf("generate root container: %w", err)
+	if len(g.container.Containers) > 0 {
+		fields = append(fields, jen.Line())
+	}
+	constructorBlocks := make([]jen.Code, 0, 1+len(g.container.Containers))
+	constructorBlocks = append(constructorBlocks,
+		jen.Id("c").Op(":=").Op("&").Id("Container").Op("{}"),
+	)
+
+	for _, container := range g.container.Containers {
+		fields = append(fields, jen.Id(strcase.ToLowerCamel(container.Name)).Op("*").Id(container.Type.Name))
+		constructorBlocks = append(constructorBlocks,
+			jen.Id("c").Dot(strcase.ToLowerCamel(container.Name)).
+				Op("=").Op("&").Id(container.Type.Name).Values(
+				jen.Id("Container").Op(":").Id("c"),
+			),
+		)
 	}
 
-	return nil
+	g.file.Add(jen.Type().Id("Container").Struct(fields...))
+
+	constructorBlocks = append(constructorBlocks, jen.Line(), jen.Return(jen.Id("c")))
+	g.file.Add(jen.Func().
+		Id("NewContainer").Params().Op("*").Id("Container").
+		Block(constructorBlocks...),
+	)
+
+	g.file.Add(
+		jen.Line(),
+		jen.Commentf("Error returns the first initialization error, which can be set via SetError in a service definition."),
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id("Error").Params().Error().
+			Block(jen.Return(jen.Id("c").Dot("err"))),
+		jen.Line(),
+		jen.Commentf("SetError sets the first error into container. The error is used in the public container to return an initialization error."),
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id("SetError").Params(jen.Err().Error()).
+			Block(
+				jen.If(jen.Err().Op("!=").Nil().Op("&&").Id("c").Dot("err").Op("==").Nil()).Block(
+					jen.Id("c").Dot("err").Op("=").Err(),
+				),
+			),
+	)
 }
 
-func (g *InternalContainerGenerator) generateContainers() error {
+func (g *InternalContainerGenerator) generateContainers() {
 	for _, container := range g.container.Containers {
-		g.writeLine(fmt.Sprintf("\ntype %s struct {", container.Type.Name))
-		g.writeLine("\t*Container\n")
+		fields := make([]jen.Code, 0, len(container.Services)+2)
+		fields = append(fields, jen.Op("*").Id("Container"), jen.Line())
 
 		for _, service := range container.Services {
-			g.importService(service)
-			g.writeLine(fmt.Sprintf("\t%s %s", strcase.ToLowerCamel(service.Name), service.Type.String()))
+			fields = append(fields, jen.Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)))
 		}
 
-		g.writeLine("}")
+		g.file.Add(jen.Type().Id(strings.Title(container.Type.Name)).Struct(fields...))
 	}
-
-	return nil
 }
 
-func (g *InternalContainerGenerator) generateGetters() error {
-	err := g.writeServiceGetters(g.container.Services, g.container.Name)
-	if err != nil {
-		return err
-	}
+func (g *InternalContainerGenerator) generateGetters() {
+	g.writeServiceGetters(g.container.Services, g.container.Name)
 
 	for _, container := range g.container.Containers {
-		g.importDefinitions()
-
-		err = g.writeContainerGetter(container)
-		if err != nil {
-			return err
-		}
-
-		err = g.writeServiceGetters(container.Services, container.Type.Name)
-		if err != nil {
-			return err
-		}
+		g.writeContainerGetter(container)
+		g.writeServiceGetters(container.Services, container.Type.Name)
 	}
-
-	return nil
 }
 
-func (g *InternalContainerGenerator) writeContainerGetter(container *ContainerDefinition) error {
-	parameters := attachedContainerTemplateParameters{
-		ContainerName:                   g.container.Name,
-		AttachedContainerName:           strcase.ToLowerCamel(container.Name),
-		AttachedContainerTitle:          container.Title(),
-		AttachedContainerDefinitionType: "lookup." + container.Type.Name,
-	}
-	err := separateContainerGetterTemplate.Execute(g.file, parameters)
-	if err != nil {
-		return errors.Errorf("generate getter for container %s: %w", container.Name, err)
-	}
-
-	return nil
+func (g *InternalContainerGenerator) writeContainerGetter(container *ContainerDefinition) {
+	g.file.Add(
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id(container.Title()).
+			Params().
+			Qual(g.params.packageName(LookupPackage), container.Type.Name).
+			Block(
+				jen.Return(jen.Id("c").Dot(strcase.ToLowerCamel(container.Name))),
+			),
+	)
 }
 
-func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefinition, containerName string) error {
+func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefinition, containerName string) {
 	for _, service := range services {
-		g.importService(service)
+		block := make([]jen.Code, 0, 2)
+		if !service.IsRequired {
+			var factoryCall jen.Code
+			if service.IsExternal {
+				factoryCall = jen.Panic(jen.Lit("missing " + service.Title()))
+			} else {
+				factoryCall = jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
+					Qual(g.params.packageName(FactoriesPackage), "Create"+service.Title()).
+					Call(jen.Id("ctx"), jen.Id("c"))
+			}
 
-		parameters := templateParameters{
-			ContainerName:         containerName,
-			ServicePrefix:         strings.Title(service.Prefix),
-			ServiceName:           strcase.ToLowerCamel(service.Name),
-			ServiceTitle:          service.Title(),
-			ServiceType:           service.Type.String(),
-			ServiceZeroComparison: service.Type.ZeroComparison(),
-			HasDefinition:         !service.IsRequired,
-			PanicOnNil:            service.IsExternal,
-		}
-		err := g.writeGetter(parameters, service)
-		if err != nil {
-			return err
+			statement := jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).
+				Do(service.Type.ZeroComparison()).Op("&&").
+				Op("c").Dot("err").Op("==").Nil()
+			block = append(block,
+				jen.If(statement).Block(factoryCall),
+			)
 		}
 
-		if parameters.HasDefinition && !parameters.PanicOnNil {
-			g.importDefinitions()
-		}
+		block = append(block,
+			jen.Return(jen.Id("c").Dot(strcase.ToLowerCamel(service.Name))),
+		)
+
+		getter := jen.Func().Params(jen.Id("c").Op("*").Id(strings.Title(containerName))).
+			Id(service.Title()).
+			Params(jen.Id("ctx").Qual("context", "Context")).
+			Do(g.container.Type(service.Type)).
+			Block(block...)
+
+		g.file.Add(jen.Line(), getter)
 	}
-
-	return nil
 }
 
-func (g *InternalContainerGenerator) generateSetters() error {
+func (g *InternalContainerGenerator) generateSetters() {
 	for _, service := range g.container.Services {
-		err := g.generateSetter(g.container.Name, service)
-		if err != nil {
-			return err
-		}
+		g.generateSetter(g.container.Name, service)
 	}
 
 	for _, attachedContainer := range g.container.Containers {
 		for _, service := range attachedContainer.Services {
-			err := g.generateSetter(attachedContainer.Type.Name, service)
-			if err != nil {
-				return err
-			}
+			g.generateSetter(attachedContainer.Type.Name, service)
 		}
 	}
-
-	return nil
 }
 
-func (g *InternalContainerGenerator) generateClosers() error {
-	g.write("\nfunc (c *Container) Close() {")
+func (g *InternalContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) {
+	if service.HasSetter || service.IsExternal || service.IsRequired {
+		setter := jen.Func().
+			Params(jen.Id("c").Op("*").Id(containerName)).
+			Id("Set" + service.Title()).
+			Params(jen.Id("s").Do(g.container.Type(service.Type))).
+			Block(
+				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").Id("s"),
+			)
+
+		g.file.Add(jen.Line(), setter)
+	}
+}
+
+func (g *InternalContainerGenerator) generateClosers() {
+	closers := make([]jen.Code, 0, 2)
+
 	for _, service := range g.container.Services {
 		if service.HasCloser {
-			err := closerTemplate.Execute(g.file, templateParameters{ServiceName: strcase.ToLowerCamel(service.Name)})
-			if err != nil {
-				return errors.Errorf("generate closer for %s: %w", service.Name, err)
-			}
+			serviceName := strcase.ToLowerCamel(service.Name)
+			closers = append(closers,
+				jen.If(jen.Id("c").Dot(serviceName).Op("!=").Nil()).Block(
+					jen.Id("c").Dot(serviceName).Dot("Close").Call(),
+				),
+			)
 		}
 	}
 
 	for _, attachedContainer := range g.container.Containers {
 		for _, service := range attachedContainer.Services {
 			if service.HasCloser {
-				err := closerTemplate.Execute(g.file, templateParameters{
-					ServiceName: attachedContainer.Name + "." + strcase.ToLowerCamel(service.Name),
-				})
-				if err != nil {
-					return errors.Errorf("generate closer for %s: %w", service.Name, err)
-				}
+				serviceName := strcase.ToLowerCamel(service.Name)
+				closers = append(closers,
+					jen.If(jen.Id("c").Dot(strcase.ToLowerCamel(attachedContainer.Name)).Dot(serviceName).Op("!=").Nil()).Block(
+						jen.Id("c").Dot(strcase.ToLowerCamel(attachedContainer.Name)).Dot(serviceName).Dot("Close").Call(),
+					),
+				)
 			}
 		}
 	}
-	g.writeLine("}")
 
-	return nil
-}
-
-func (g *InternalContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) error {
-	if service.HasSetter || service.IsExternal || service.IsRequired {
-		g.importService(service)
-		err := setterTemplate.Execute(g.file, templateParameters{
-			ContainerName: containerName,
-			ServiceName:   strcase.ToLowerCamel(service.Name),
-			ServiceTitle:  service.Title(),
-			ServiceType:   service.Type.String(),
-		})
-		if err != nil {
-			return errors.Errorf("generate setter for %s: %w", service.Name, err)
-		}
-	}
-
-	return nil
-}
-
-func (g *InternalContainerGenerator) write(s string) {
-	g.file.WriteString(s)
-}
-
-func (g *InternalContainerGenerator) writeLine(s string) {
-	g.write(s)
-	g.newLine()
-}
-
-func (g *InternalContainerGenerator) newLine() {
-	g.write("\n")
-}
-
-func (g *InternalContainerGenerator) writeGetter(parameters templateParameters, service *ServiceDefinition) error {
-	err := getterTemplate.Execute(g.file, parameters)
-	if err != nil {
-		return errors.Errorf("generate getter for %s: %w", service.Name, err)
-	}
-	return nil
-}
-
-func (g *InternalContainerGenerator) importService(service *ServiceDefinition) {
-	g.file.AddImport(g.container.GetImport(service))
-}
-
-func (g *InternalContainerGenerator) importDefinitions() {
-	g.file.AddImport(g.params.packageName(FactoriesPackage))
+	g.file.Add(
+		jen.Line(),
+		jen.Func().Params(jen.Id("c").Op("*").Id("Container")).
+			Id("Close").
+			Params().
+			Block(closers...),
+	)
 }

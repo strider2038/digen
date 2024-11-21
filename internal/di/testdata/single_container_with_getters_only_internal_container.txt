@@ -1,0 +1,40 @@
+package internal
+
+import (
+	"context"
+	factories "example.com/test/di/internal/factories"
+	domain "example.com/test/domain"
+)
+
+type Container struct {
+	err error
+
+	serviceName *domain.Service
+}
+
+func NewContainer() *Container {
+	c := &Container{}
+
+	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err == nil {
+		c.err = err
+	}
+}
+
+func (c *Container) ServiceName(ctx context.Context) *domain.Service {
+	if c.serviceName == nil && c.err == nil {
+		c.serviceName = factories.CreateServiceName(ctx, c)
+	}
+	return c.serviceName
+}
+
+func (c *Container) Close() {}

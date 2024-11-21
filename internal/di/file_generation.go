@@ -36,7 +36,7 @@ func (params *GenerationParameters) rootPackageName() string {
 }
 
 func (params *GenerationParameters) packageName(packageType PackageType) string {
-	return strconv.Quote(params.RootPackage + "/" + packageDirs[packageType])
+	return strings.Trim(strconv.Quote(params.RootPackage+"/"+packageDirs[packageType]), `"`)
 }
 
 func GenerateFiles(container *RootContainerDefinition, params GenerationParameters) ([]*File, error) {

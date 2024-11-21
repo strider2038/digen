@@ -1,0 +1,44 @@
+package internal
+
+import (
+	"context"
+	factories "example.com/test/di/internal/factories"
+	sql "example.com/test/sql"
+)
+
+type Container struct {
+	err error
+
+	connection sql.Connection
+}
+
+func NewContainer() *Container {
+	c := &Container{}
+
+	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err == nil {
+		c.err = err
+	}
+}
+
+func (c *Container) Connection(ctx context.Context) sql.Connection {
+	if c.connection == nil && c.err == nil {
+		c.connection = factories.CreateConnection(ctx, c)
+	}
+	return c.connection
+}
+
+func (c *Container) Close() {
+	if c.connection != nil {
+		c.connection.Close()
+	}
+}

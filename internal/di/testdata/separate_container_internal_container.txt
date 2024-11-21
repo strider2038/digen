@@ -1,0 +1,77 @@
+package internal
+
+import (
+	"context"
+	factories "example.com/test/di/internal/factories"
+	lookup "example.com/test/di/internal/lookup"
+	domain "example.com/test/domain"
+)
+
+type Container struct {
+	err error
+
+	topService *domain.Service
+
+	internalContainerName *InternalContainerType
+}
+
+func NewContainer() *Container {
+	c := &Container{}
+	c.internalContainerName = &InternalContainerType{Container: c}
+
+	return c
+}
+
+// Error returns the first initialization error, which can be set via SetError in a service definition.
+func (c *Container) Error() error {
+	return c.err
+}
+
+// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+func (c *Container) SetError(err error) {
+	if err != nil && c.err == nil {
+		c.err = err
+	}
+}
+
+type InternalContainerType struct {
+	*Container
+
+	firstService  *domain.Service
+	secondService *domain.Service
+}
+
+func (c *Container) TopService(ctx context.Context) *domain.Service {
+	if c.topService == nil && c.err == nil {
+		c.topService = factories.CreateTopService(ctx, c)
+	}
+	return c.topService
+}
+
+func (c *Container) InternalContainerName() lookup.InternalContainerType {
+	return c.internalContainerName
+}
+
+func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
+	if c.firstService == nil && c.err == nil {
+		c.firstService = factories.CreateFirstService(ctx, c)
+	}
+	return c.firstService
+}
+
+func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
+	if c.secondService == nil && c.err == nil {
+		c.secondService = factories.CreateSecondService(ctx, c)
+	}
+	return c.secondService
+}
+
+func (c *InternalContainerType) SetSecondService(s *domain.Service) {
+	c.secondService = s
+}
+
+func (c *Container) Close() {
+	if c.internalContainerName.secondService != nil {
+		c.internalContainerName.secondService.Close()
+	}
+}

@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"slices"
 	"strings"
+
+	"github.com/dave/jennifer/jen"
 )
 
 type RootContainerDefinition struct {
@@ -20,6 +22,26 @@ func (c RootContainerDefinition) GetImport(s *ServiceDefinition) string {
 		return ""
 	}
 	return imp.String()
+}
+
+func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement *jen.Statement) {
+	return func(statement *jen.Statement) {
+		packageName := c.PackageName(definition)
+		if definition.IsPointer {
+			statement.Op("*").Qual(packageName, definition.Name)
+		} else {
+			statement.Qual(packageName, definition.Name)
+		}
+	}
+}
+
+func (c RootContainerDefinition) PackageName(definition TypeDefinition) string {
+	packageName := ""
+	if imp, ok := c.Imports[definition.Package]; ok {
+		packageName = strings.Trim(imp.String(), `"`)
+	}
+
+	return packageName
 }
 
 type ImportDefinition struct {
@@ -54,6 +76,14 @@ type ServiceDefinition struct {
 
 func (s ServiceDefinition) Title() string {
 	return strings.Title(s.Name)
+}
+
+func (s ServiceDefinition) PublicTitle() string {
+	if s.PublicName != "" {
+		return strings.Title(s.PublicName)
+	}
+
+	return s.Title()
 }
 
 func newServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefinition {
@@ -152,38 +182,37 @@ func (d TypeDefinition) String() string {
 	return s.String()
 }
 
-func (d TypeDefinition) ZeroComparison() string {
-	if d.IsPointer {
-		return " == nil"
+func (d TypeDefinition) ZeroComparison() func(statement *jen.Statement) {
+	return func(statement *jen.Statement) {
+		switch {
+		case d.IsPointer:
+			statement.Op("==").Nil()
+		case d.IsBasicType():
+			d.basicZeroComparison(statement)
+		case d.IsTime():
+			statement.Dot("IsZero").Call()
+		case d.IsDuration():
+			statement.Op("==").Lit(0)
+		case d.IsURL():
+			statement.Op("==").New(jen.Qual("net/url", "URL"))
+		default:
+			statement.Op("==").Nil()
+		}
 	}
-	if d.IsBasicType() {
-		return d.basicZeroComparison()
-	}
-	if d.IsTime() {
-		return ".IsZero()"
-	}
-	if d.IsDuration() {
-		return " == 0"
-	}
-	if d.IsURL() {
-		return " == url.URL{}"
-	}
-
-	return " == nil"
 }
 
-func (d TypeDefinition) basicZeroComparison() string {
+func (d TypeDefinition) basicZeroComparison(statement *jen.Statement) {
 	switch d.Name {
 	case "bool":
-		return " == false"
+		statement.Op("==").False()
 	case "string":
-		return " == \"\""
+		statement.Op("==").Lit("")
 	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
-		return " == 0"
+		statement.Op("==").Lit(0)
 	case "float32", "float64":
-		return " == 0.0"
+		statement.Op("==").Lit(0.0)
 	default:
-		return " == nil"
+		statement.Op("==").Nil()
 	}
 }
 
