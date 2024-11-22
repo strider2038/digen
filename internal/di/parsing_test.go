@@ -1,6 +1,7 @@
 package di_test
 
 import (
+	_ "embed"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,71 +9,52 @@ import (
 	"github.com/strider2038/digen/internal/di"
 )
 
-const testContainerSource = `
-package di
+var (
+	//go:embed testdata/parsing/definitions_container.txt
+	definitionsComplexExample string
+	//go:embed testdata/parsing/definitions_basic_types.txt
+	definitionsBasicTypes string
 
-import (
-	"net/http"
-
-	"example.com/test/application/usecase"
-	"example.com/test/domain"
-	"example.com/test/di/config"
-	httpadapter "example.com/test/infrastructure/api/http"
+	//go:embed testdata/parsing/factories.txt
+	testFactorySource string
 )
-
-type Container struct {
-	Configuration    config.Configuration
-	EntityRepository domain.EntityRepository ` + "`di:\"required,set,close,public,external\"`" + `
-	Handler          *httpadapter.GetEntityHandler ` + "`factory_file:\"http_handler\"`" + `
-
-	Router http.Handler ` + "`public_name:\"APIRouter\"`" + `
-
-	StringOption   string
-	IntOption      int
-	DurationOption time.Duration
-	StringPointer  *string
-
-	UseCase UseCaseContainer
-}
-
-type UseCaseContainer struct {
-	FindEntity *usecase.FindEntity
-}
-`
-
-const testFactorySource = `
-package factories
-
-import (
-	"example.com/test/application/usecase"
-	"example.com/test/domain"
-	httpadapter "example.com/test/infrastructure/api/http"
-	"example.com/test/infrastructure/inmemory"
-)
-
-func CreateEntityRepository(c Container) domain.EntityRepository {
-	return inmemory.NewEntityRepository()
-}
-
-func CreateUseCase(c Container) *usecase.FindEntity {
-	return usecase.NewFindEntity(c.EntityRepository())
-}
-
-func CreateHandler(c Container) *httpadapter.GetEntityHandler {
-	return httpadapter.NewGetEntityHandler(c.UseCase())
-}
-`
 
 func TestParseContainerFromSource(t *testing.T) {
-	container, err := di.ParseContainerFromSource(testContainerSource)
+	tests := []struct {
+		name   string
+		source string
+		assert func(t *testing.T, container *di.RootContainerDefinition)
+	}{
+		{
+			name:   "complex example",
+			source: definitionsComplexExample,
+			assert: func(t *testing.T, container *di.RootContainerDefinition) {
+				t.Helper()
+				assert.Equal(t, "Container", container.Name)
+				assert.Equal(t, "di", container.Package)
+				assertExpectedContainerImports(t, container.Imports)
+				assertExpectedContainerServices(t, container.Services)
+				assertExpectedInternalContainers(t, container.Containers)
+			},
+		},
+		{
+			name:   "basic types",
+			source: definitionsBasicTypes,
+			assert: func(t *testing.T, container *di.RootContainerDefinition) {
+				t.Helper()
+				assertExpectedBasicTypes(t, container.Services)
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			container, err := di.ParseContainerFromSource(test.source)
 
-	require.NoError(t, err)
-	require.NotNil(t, container)
-	assert.Equal(t, "Container", container.Name)
-	assert.Equal(t, "di", container.Package)
-	assertExpectedContainerImports(t, container.Imports)
-	assertExpectedContainerServices(t, container.Services)
-	assertExpectedInternalContainers(t, container.Containers)
+			require.NoError(t, err)
+			require.NotNil(t, container)
+			test.assert(t, container)
+		})
+	}
 }
 
 func TestParseFactoryFromSource(t *testing.T) {
@@ -116,7 +98,7 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 }
 
 func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
-	require.Len(t, services, 8)
+	require.Len(t, services, 4)
 
 	assert.Equal(t, "Configuration", services[0].Name)
 	assert.Equal(t, "config", services[0].Type.Package)
@@ -160,30 +142,34 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 	assert.False(t, services[3].IsRequired)
 	assert.False(t, services[3].IsPublic)
 	assert.False(t, services[3].IsExternal)
+}
 
-	assert.Equal(t, "StringOption", services[4].Name)
-	assert.True(t, services[4].Type.IsBasicType())
-	assert.False(t, services[4].Type.IsPointer)
-	assert.Equal(t, "", services[4].Type.Package)
-	assert.Equal(t, "string", services[4].Type.Name)
+func assertExpectedBasicTypes(t *testing.T, services []*di.ServiceDefinition) {
+	require.Len(t, services, 4)
 
-	assert.Equal(t, "IntOption", services[5].Name)
-	assert.True(t, services[5].Type.IsBasicType())
-	assert.False(t, services[5].Type.IsPointer)
-	assert.Equal(t, "", services[5].Type.Package)
-	assert.Equal(t, "int", services[5].Type.Name)
+	assert.Equal(t, "StringOption", services[0].Name)
+	assert.True(t, services[0].Type.IsBasicType())
+	assert.False(t, services[0].Type.IsPointer)
+	assert.Equal(t, "", services[0].Type.Package)
+	assert.Equal(t, "string", services[0].Type.Name)
 
-	assert.Equal(t, "DurationOption", services[6].Name)
-	assert.True(t, services[6].Type.IsDuration())
-	assert.False(t, services[6].Type.IsPointer)
-	assert.Equal(t, "time", services[6].Type.Package)
-	assert.Equal(t, "Duration", services[6].Type.Name)
+	assert.Equal(t, "IntOption", services[1].Name)
+	assert.True(t, services[1].Type.IsBasicType())
+	assert.False(t, services[1].Type.IsPointer)
+	assert.Equal(t, "", services[1].Type.Package)
+	assert.Equal(t, "int", services[1].Type.Name)
 
-	assert.Equal(t, "StringPointer", services[7].Name)
-	assert.True(t, services[7].Type.IsBasicType())
-	assert.True(t, services[7].Type.IsPointer)
-	assert.Equal(t, "", services[7].Type.Package)
-	assert.Equal(t, "string", services[7].Type.Name)
+	assert.Equal(t, "DurationOption", services[2].Name)
+	assert.True(t, services[2].Type.IsDuration())
+	assert.False(t, services[2].Type.IsPointer)
+	assert.Equal(t, "time", services[2].Type.Package)
+	assert.Equal(t, "Duration", services[2].Type.Name)
+
+	assert.Equal(t, "StringPointer", services[3].Name)
+	assert.True(t, services[3].Type.IsBasicType())
+	assert.True(t, services[3].Type.IsPointer)
+	assert.Equal(t, "", services[3].Type.Package)
+	assert.Equal(t, "string", services[3].Type.Name)
 }
 
 func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {

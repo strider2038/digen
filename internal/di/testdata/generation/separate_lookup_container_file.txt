@@ -17,4 +17,5 @@ type Container interface {
 type InternalContainerType interface {
 	FirstService(ctx context.Context) *domain.Service
 	SecondService(ctx context.Context) *domain.Service
+	RequiredService(ctx context.Context) *domain.Service
 }

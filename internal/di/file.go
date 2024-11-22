@@ -88,18 +88,7 @@ func (b *FileBuilder) Add(code ...jen.Code) *jen.Statement {
 
 func (b *FileBuilder) GetFile() (*File, error) {
 	var buffer bytes.Buffer
-	//
-	//buffer.WriteString("package " + b.packageName + "\n\n")
-	//
-	//if len(b.imports) > 0 {
-	//	buffer.WriteString("import (\n")
-	//	for _, imp := range b.imports {
-	//		buffer.WriteString("\t" + imp + "\n")
-	//	}
-	//	buffer.WriteString(")\n")
-	//}
-	//
-	//b.body.WriteTo(&buffer)
+
 	if err := b.file.Render(&buffer); err != nil {
 		return nil, errors.Errorf("render %s: %w", b.fileName, err)
 	}

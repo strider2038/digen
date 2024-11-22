@@ -302,7 +302,8 @@ func TestGenerate(t *testing.T) {
 						},
 						Services: []*di.ServiceDefinition{
 							{
-								Name: "firstService",
+								Prefix: "InternalContainerType",
+								Name:   "firstService",
 								Type: di.TypeDefinition{
 									IsPointer: true,
 									Package:   "domain",
@@ -311,7 +312,8 @@ func TestGenerate(t *testing.T) {
 								IsPublic: true,
 							},
 							{
-								Name: "secondService",
+								Prefix: "InternalContainerType",
+								Name:   "secondService",
 								Type: di.TypeDefinition{
 									IsPointer: true,
 									Package:   "domain",
@@ -319,6 +321,16 @@ func TestGenerate(t *testing.T) {
 								},
 								HasSetter: true,
 								HasCloser: true,
+							},
+							{
+								Prefix: "InternalContainerType",
+								Name:   "requiredService",
+								Type: di.TypeDefinition{
+									IsPointer: true,
+									Package:   "domain",
+									Name:      "Service",
+								},
+								IsRequired: true,
 							},
 						},
 					},
@@ -388,42 +400,42 @@ func TestGenerate(t *testing.T) {
 }
 
 var (
-	//go:embed testdata/single_container_with_getters_only_internal_container.txt
+	//go:embed testdata/generation/single_container_with_getters_only_internal_container.txt
 	singleContainerWithGettersOnlyInternalContainer string
-	//go:embed testdata/single_container_with_getters_only_definition_contracts.txt
+	//go:embed testdata/generation/single_container_with_getters_only_definition_contracts.txt
 	singleContainerWithGettersOnlyDefinitionContracts string
-	//go:embed testdata/single_container_with_getters_only_public_file.txt
+	//go:embed testdata/generation/single_container_with_getters_only_public_file.txt
 	singleContainerWithGettersOnlyPublicFile string
 
-	//go:embed testdata/single_container_with_service_setter_internal_container.txt
+	//go:embed testdata/generation/single_container_with_service_setter_internal_container.txt
 	singleContainerWithServiceSetterInternalContainer string
-	//go:embed testdata/single_container_with_service_setter_public_container.txt
+	//go:embed testdata/generation/single_container_with_service_setter_public_container.txt
 	singleContainerWithServiceSetterPublicContainer string
 
-	//go:embed testdata/single_container_with_required_service_internal_container.txt
+	//go:embed testdata/generation/single_container_with_required_service_internal_container.txt
 	singleContainerWithRequiredServiceInternalContainer string
-	//go:embed testdata/public_container_with_requirement_file.txt
+	//go:embed testdata/generation/public_container_with_requirement_file.txt
 	publicContainerWithRequirementFile string
 
-	//go:embed testdata/single_container_with_basic_types.txt
+	//go:embed testdata/generation/single_container_with_basic_types.txt
 	singleContainerWithBasicTypes string
 
-	//go:embed testdata/single_container_with_external_service_internal_container.txt
+	//go:embed testdata/generation/single_container_with_external_service_internal_container.txt
 	singleContainerWithExternalServiceInternalContainer string
 
-	//go:embed testdata/single_container_with_static_type_internal_container.txt
+	//go:embed testdata/generation/single_container_with_static_type_internal_container.txt
 	singleContainerWithStaticTypeInternalContainer string
 
-	//go:embed testdata/single_container_with_closer_internal_container.txt
+	//go:embed testdata/generation/single_container_with_closer_internal_container.txt
 	singleContainerWithCloserInternalContainer string
 
-	//go:embed testdata/two_services_from_one_package_internal_container.txt
+	//go:embed testdata/generation/two_services_from_one_package_internal_container.txt
 	twoServicesFromOnePackageInternalContainer string
 
-	//go:embed testdata/separate_container_internal_container.txt
+	//go:embed testdata/generation/separate_container_internal_container.txt
 	separateContainerInternalContainer string
-	//go:embed testdata/separate_lookup_container_file.txt
+	//go:embed testdata/generation/separate_lookup_container_file.txt
 	separateLookupContainerFile string
-	//go:embed testdata/separate_container_public_file.txt
+	//go:embed testdata/generation/separate_container_public_file.txt
 	separateContainerPublicFile string
 )

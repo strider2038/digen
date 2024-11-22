@@ -1,26 +1,18 @@
 package di
 
 import (
-	"bytes"
 	"strconv"
 	"strings"
 
 	"github.com/muonsoft/errors"
 )
 
-func GenerateDefinitionsContainerFile() (*File, error) {
-	var buffer bytes.Buffer
-
-	err := definitionsContainerFileTemplate.Execute(&buffer, nil)
-	if err != nil {
-		return nil, errors.Errorf("generate internal container: %w")
-	}
-
+func GenerateDefinitionsContainerFile() *File {
 	return &File{
 		Package: DefinitionsPackage,
 		Name:    "container.go",
-		Content: buffer.Bytes(),
-	}, nil
+		Content: []byte(definitionsContainerFileSkeleton),
+	}
 }
 
 type GenerationParameters struct {

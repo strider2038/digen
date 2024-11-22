@@ -4,8 +4,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dave/jennifer/jen"
 	"github.com/iancoleman/strcase"
-	"github.com/muonsoft/errors"
 )
 
 type FactoriesGenerator struct {
@@ -37,20 +37,18 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 		}
 
 		file := NewFileBuilder(filename, "factories", FactoriesPackage)
-		file.AddImport(`"context"`)
-		file.AddImport(g.params.packageName(LookupPackage))
 
 		for _, service := range services {
-			file.AddImport(g.container.GetImport(service))
-
-			err := factoryFuncTemplate.Execute(file, templateParameters{
-				ServicePrefix: strings.Title(service.Prefix),
-				ServiceTitle:  service.Title(),
-				ServiceType:   service.Type.String(),
-			})
-			if err != nil {
-				return nil, errors.Errorf("generate factory for %s: %w", service.Name, err)
-			}
+			file.Add(
+				jen.Line(),
+				jen.Func().Id("Create"+strings.Title(service.Prefix)+service.Title()).
+					Params(
+						jen.Id("ctx").Qual("context", "Context"),
+						jen.Id("c").Qual(g.params.packageName(LookupPackage), "Container"),
+					).
+					Do(g.container.Type(service.Type)).
+					Block(jen.Panic(jen.Lit("not implemented"))),
+			)
 		}
 
 		content, err := file.GetFile()

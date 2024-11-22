@@ -14,11 +14,13 @@ type Container struct {
 
 type Injector func(c *Container) error
 
-func NewContainer(injectors ...Injector) (*Container, error) {
+func NewContainer(requiredService *domain.Service, injectors ...Injector) (*Container, error) {
 	c := &Container{
 		c:  internal.NewContainer(),
 		mu: &sync.Mutex{},
 	}
+
+	c.c.InternalContainerName().(*internal.InternalContainerType).SetRequiredService(requiredService)
 
 	for _, inject := range injectors {
 		err := inject(c)

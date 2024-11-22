@@ -137,7 +137,7 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 				factoryCall = jen.Panic(jen.Lit("missing " + service.Title()))
 			} else {
 				factoryCall = jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
-					Qual(g.params.packageName(FactoriesPackage), "Create"+service.Title()).
+					Qual(g.params.packageName(FactoriesPackage), "Create"+service.Prefix+service.Title()).
 					Call(jen.Id("ctx"), jen.Id("c"))
 			}
 

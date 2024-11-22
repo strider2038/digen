@@ -6,7 +6,6 @@ import (
 
 	"github.com/dave/jennifer/jen"
 	"github.com/iancoleman/strcase"
-	"github.com/muonsoft/errors"
 )
 
 type PublicContainerGenerator struct {
@@ -15,7 +14,6 @@ type PublicContainerGenerator struct {
 
 	file *FileBuilder
 
-	methods         bytes.Buffer
 	arguments       bytes.Buffer
 	argumentSetters bytes.Buffer
 }
@@ -25,8 +23,6 @@ func NewPublicContainerGenerator(
 	params GenerationParameters,
 ) *PublicContainerGenerator {
 	file := NewFileBuilder("container.go", params.rootPackageName(), PublicPackage)
-	file.AddImport(`"sync"`)
-	file.AddImport(params.packageName(InternalPackage))
 
 	return &PublicContainerGenerator{
 		container: container,
@@ -60,28 +56,13 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 			methods = append(methods, jen.Line(), g.generateSetter(service, nil))
 		}
 		if service.IsRequired {
-			arguments = append(arguments,
-				jen.Id(strcase.ToLowerCamel(service.Name)).
-					Do(g.container.Type(service.Type)),
-			)
-			argumentSetters = append(argumentSetters,
-				jen.Id("c").Dot("c").
-					Dot("Set"+service.Title()).
-					Call(jen.Id(strcase.ToLowerCamel(service.Name))),
-			)
+			arguments = append(arguments, g.generateConstructorArgument(service))
+			argumentSetters = append(argumentSetters, g.generateConstructorSetter(service, nil))
 		}
 	}
 
 	for _, attachedContainer := range g.container.Containers {
 		for _, service := range attachedContainer.Services {
-			parameters := templateParameters{
-				ContainerName: g.container.Name,
-				ServicePath:   attachedContainer.Title() + "().(*" + attachedContainer.Type.String() + ").",
-				ServiceName:   service.Name,
-				ServiceTitle:  service.Title(),
-				ServiceType:   service.Type.String(),
-			}
-
 			if service.IsPublic {
 				methods = append(methods, jen.Line(), g.generateGetter(service, attachedContainer))
 			}
@@ -89,15 +70,8 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 				methods = append(methods, jen.Line(), jen.Line(), g.generateSetter(service, attachedContainer))
 			}
 			if service.IsRequired {
-				// todo: test!!!
-				err := argumentTemplate.Execute(&g.arguments, parameters)
-				if err != nil {
-					return nil, errors.Errorf("generate argument for %s: %w", service.Name, err)
-				}
-				err = argumentSetterTemplate.Execute(&g.argumentSetters, parameters)
-				if err != nil {
-					return nil, errors.Errorf("generate argument setter for %s: %w", service.Name, err)
-				}
+				arguments = append(arguments, g.generateConstructorArgument(service))
+				argumentSetters = append(argumentSetters, g.generateConstructorSetter(service, attachedContainer))
 			}
 		}
 	}
@@ -105,61 +79,49 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	arguments = append(arguments,
 		jen.Id("injectors").Op("...").Id("Injector"),
 	)
-
 	if len(argumentSetters) > 0 {
 		argumentSetters = append(argumentSetters, jen.Line())
 	}
 
-	g.file.Add(
-		jen.Func().Id("NewContainer").
-			Params(arguments...).
-			Params(
-				jen.Op("*").Id("Container"),
-				jen.Error(),
-			).
-			Block(slices.Concat(
-				[]jen.Code{
-					jen.Id("c").Op(":=").Op("&").Id("Container").Values(jen.Dict{
-						jen.Id("mu"): jen.Op("&").Qual("sync", "Mutex").Op("{}"),
-						jen.Id("c"):  jen.Qual(g.params.packageName(InternalPackage), "NewContainer").Op("()"),
-					}),
-					jen.Line(),
-				},
-				argumentSetters,
-				[]jen.Code{
-					jen.For(
-						jen.Op("_").Op(",").Id("inject").Op(":=").Range().Id("injectors").Block(
-							jen.Id("err").Op(":=").Id("inject").Call(jen.Id("c")),
-							jen.If(jen.Id("err").Op("!=").Nil()).Block(
-								jen.Return(jen.Nil(), jen.Id("err")),
-							),
-						),
-					),
-					jen.Line(),
-					jen.Return(jen.Id("c"), jen.Nil()),
-				},
-			)...),
-	)
-
+	g.file.Add(g.generateConstructor(arguments, argumentSetters))
 	g.file.Add(methods...)
-
-	g.file.Add(
-		jen.Line(),
-		jen.Func().
-			Params(jen.Id("c").Op("*").Id("Container")).
-			Id("Close").Params().
-			Block(
-				jen.Id("c").Dot("mu").Dot("Lock").Call(),
-				jen.Defer().Id("c").Dot("mu").Dot("Unlock").Call(),
-				jen.Line(),
-				jen.Id("c").Dot("c").Dot("Close").Call(),
-			),
-	)
+	g.file.Add(jen.Line(), g.generateCloser())
 
 	// todo: remove
 	//fmt.Printf("%#v", g.file.file)
 
 	return g.file.GetFile()
+}
+
+func (g *PublicContainerGenerator) generateConstructor(arguments []jen.Code, argumentSetters []jen.Code) *jen.Statement {
+	return jen.Func().Id("NewContainer").
+		Params(arguments...).
+		Params(
+			jen.Op("*").Id("Container"),
+			jen.Error(),
+		).
+		Block(slices.Concat(
+			[]jen.Code{
+				jen.Id("c").Op(":=").Op("&").Id("Container").Values(jen.Dict{
+					jen.Id("mu"): jen.Op("&").Qual("sync", "Mutex").Op("{}"),
+					jen.Id("c"):  jen.Qual(g.params.packageName(InternalPackage), "NewContainer").Op("()"),
+				}),
+				jen.Line(),
+			},
+			argumentSetters,
+			[]jen.Code{
+				jen.For(
+					jen.Op("_").Op(",").Id("inject").Op(":=").Range().Id("injectors").Block(
+						jen.Id("err").Op(":=").Id("inject").Call(jen.Id("c")),
+						jen.If(jen.Id("err").Op("!=").Nil()).Block(
+							jen.Return(jen.Nil(), jen.Id("err")),
+						),
+					),
+				),
+				jen.Line(),
+				jen.Return(jen.Id("c"), jen.Nil()),
+			},
+		)...)
 }
 
 func (g *PublicContainerGenerator) generateGetter(service *ServiceDefinition, container *ContainerDefinition) *jen.Statement {
@@ -179,7 +141,7 @@ func (g *PublicContainerGenerator) generateGetter(service *ServiceDefinition, co
 			jen.Id("c").Dot("mu").Dot("Lock").Call(),
 			jen.Defer().Id("c").Dot("mu").Dot("Unlock").Call(),
 			jen.Line(),
-			jen.Id("s").Op(":=").Id("c").Dot("c").Do(g.ContainerPath(container)).Dot(service.Title()).Call(jen.Id("ctx")),
+			jen.Id("s").Op(":=").Id("c").Dot("c").Do(g.containerPath(container)).Dot(service.Title()).Call(jen.Id("ctx")),
 			jen.Id("err").Op(":=").Id("c").Dot("c").Dot("Error").Call(),
 			jen.If(jen.Id("err").Op("!=").Nil()).Block(
 				jen.Return(jen.Nil(), jen.Id("err")),
@@ -201,7 +163,7 @@ func (g *PublicContainerGenerator) generateSetter(service *ServiceDefinition, co
 		Block(
 			jen.Return(
 				jen.Func().Params(jen.Id("c").Op("*").Id("Container")).Params(jen.Error()).Block(
-					jen.Id("c").Dot("c").Do(g.ContainerPath(container)).Dot("Set"+service.Title()).Call(jen.Id("s")),
+					jen.Id("c").Dot("c").Do(g.containerPath(container)).Dot("Set"+service.Title()).Call(jen.Id("s")),
 					jen.Line(),
 					jen.Return(jen.Nil()),
 				),
@@ -209,7 +171,33 @@ func (g *PublicContainerGenerator) generateSetter(service *ServiceDefinition, co
 		)
 }
 
-func (g *PublicContainerGenerator) ContainerPath(container *ContainerDefinition) func(*jen.Statement) {
+func (g *PublicContainerGenerator) generateConstructorArgument(service *ServiceDefinition) *jen.Statement {
+	return jen.Id(strcase.ToLowerCamel(service.Name)).
+		Do(g.container.Type(service.Type))
+}
+
+func (g *PublicContainerGenerator) generateConstructorSetter(service *ServiceDefinition, container *ContainerDefinition) *jen.Statement {
+	statement := jen.Id("c").Dot("c")
+	if container != nil {
+		statement = statement.Do(g.containerPath(container))
+	}
+
+	return statement.Dot("Set" + service.Title()).Call(jen.Id(strcase.ToLowerCamel(service.Name)))
+}
+
+func (g *PublicContainerGenerator) generateCloser() *jen.Statement {
+	return jen.Func().
+		Params(jen.Id("c").Op("*").Id("Container")).
+		Id("Close").Params().
+		Block(
+			jen.Id("c").Dot("mu").Dot("Lock").Call(),
+			jen.Defer().Id("c").Dot("mu").Dot("Unlock").Call(),
+			jen.Line(),
+			jen.Id("c").Dot("c").Dot("Close").Call(),
+		)
+}
+
+func (g *PublicContainerGenerator) containerPath(container *ContainerDefinition) func(*jen.Statement) {
 	return func(statement *jen.Statement) {
 		if container == nil {
 			return

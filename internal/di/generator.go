@@ -30,10 +30,7 @@ func (g *Generator) Initialize() error {
 		return err
 	}
 
-	file, err := GenerateDefinitionsContainerFile()
-	if err != nil {
-		return err
-	}
+	file := GenerateDefinitionsContainerFile()
 
 	writer := NewWriter(g.BaseDir)
 	if err := writer.WriteFile(file); err != nil {

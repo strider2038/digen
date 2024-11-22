@@ -37,8 +37,9 @@ func (c *Container) SetError(err error) {
 type InternalContainerType struct {
 	*Container
 
-	firstService  *domain.Service
-	secondService *domain.Service
+	firstService    *domain.Service
+	secondService   *domain.Service
+	requiredService *domain.Service
 }
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
@@ -54,20 +55,28 @@ func (c *Container) InternalContainerName() lookup.InternalContainerType {
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
 	if c.firstService == nil && c.err == nil {
-		c.firstService = factories.CreateFirstService(ctx, c)
+		c.firstService = factories.CreateInternalContainerTypeFirstService(ctx, c)
 	}
 	return c.firstService
 }
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
 	if c.secondService == nil && c.err == nil {
-		c.secondService = factories.CreateSecondService(ctx, c)
+		c.secondService = factories.CreateInternalContainerTypeSecondService(ctx, c)
 	}
 	return c.secondService
 }
 
+func (c *InternalContainerType) RequiredService(ctx context.Context) *domain.Service {
+	return c.requiredService
+}
+
 func (c *InternalContainerType) SetSecondService(s *domain.Service) {
 	c.secondService = s
+}
+
+func (c *InternalContainerType) SetRequiredService(s *domain.Service) {
+	c.requiredService = s
 }
 
 func (c *Container) Close() {
