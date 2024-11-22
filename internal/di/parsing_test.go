@@ -145,7 +145,7 @@ func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinit
 }
 
 func assertExpectedBasicTypes(t *testing.T, services []*di.ServiceDefinition) {
-	require.Len(t, services, 4)
+	require.Len(t, services, 6)
 
 	assert.Equal(t, "StringOption", services[0].Name)
 	assert.True(t, services[0].Type.IsBasicType())
@@ -170,6 +170,24 @@ func assertExpectedBasicTypes(t *testing.T, services []*di.ServiceDefinition) {
 	assert.True(t, services[3].Type.IsPointer)
 	assert.Equal(t, "", services[3].Type.Package)
 	assert.Equal(t, "string", services[3].Type.Name)
+
+	assert.Equal(t, "IntSlice", services[4].Name)
+	assert.True(t, services[4].Type.IsBasicType())
+	assert.False(t, services[4].Type.IsPointer)
+	assert.True(t, services[4].Type.IsSlice)
+	assert.Equal(t, "", services[4].Type.Package)
+	assert.Equal(t, "int", services[4].Type.Name)
+
+	assert.Equal(t, "StringMap", services[5].Name)
+	assert.True(t, services[5].Type.IsBasicType())
+	assert.False(t, services[5].Type.IsPointer)
+	assert.True(t, services[5].Type.IsMap())
+	assert.Equal(t, "", services[5].Type.Package)
+	assert.Equal(t, "string", services[5].Type.Name)
+	require.NotNil(t, services[5].Type.Key)
+	assert.True(t, services[5].Type.Key.IsBasicType())
+	assert.Equal(t, "", services[5].Type.Key.Package)
+	assert.Equal(t, "string", services[5].Type.Key.Name)
 }
 
 func assertExpectedInternalContainers(t *testing.T, containers []*di.ContainerDefinition) {

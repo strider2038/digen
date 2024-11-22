@@ -10,4 +10,5 @@ type Container struct {
 	DurationOption time.Duration
 	StringPointer  *string
 	IntSlice       []int
+	StringMap      map[string]string
 }

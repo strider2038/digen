@@ -276,6 +276,31 @@ func parseTypeDefinition(expr ast.Expr) (TypeDefinition, error) {
 
 		return definition, nil
 
+	case *ast.ArrayType:
+		definition, err := parseTypeDefinition(t.Elt)
+		if err != nil {
+			return definition, err
+		}
+		if t.Len != nil {
+			return definition, errors.Errorf("%w: %s", ErrNotSupported, "array with length")
+		}
+		definition.IsSlice = true
+
+		return definition, nil
+
+	case *ast.MapType:
+		definition, err := parseTypeDefinition(t.Value)
+		if err != nil {
+			return definition, err
+		}
+		key, err := parseTypeDefinition(t.Key)
+		if err != nil {
+			return definition, err
+		}
+		definition.Key = &key
+
+		return definition, nil
+
 	case *ast.Ident:
 		return TypeDefinition{Name: t.Name}, nil
 	}

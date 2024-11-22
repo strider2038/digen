@@ -130,8 +130,14 @@ func (c ContainerDefinition) Title() string {
 
 type TypeDefinition struct {
 	IsPointer bool
+	IsSlice   bool
 	Package   string
 	Name      string
+	Key       *TypeDefinition
+}
+
+func (d TypeDefinition) IsMap() bool {
+	return d.Key != nil
 }
 
 var basicTypes = []string{
