@@ -2,67 +2,53 @@ package di
 
 import (
 	"go/ast"
-	"go/parser"
-	"go/token"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/muonsoft/errors"
 )
 
 func ParseDefinitionsFromFile(filename string) (*RootContainerDefinition, error) {
+	parser := &DefinitionsParser{}
+
+	return parser.ParseFile(filename)
+}
+
+func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
+	parser := &DefinitionsParser{}
+
+	return parser.ParseSource(source)
+}
+
+type DefinitionsParser struct {
+	lastID int
+}
+
+func (p *DefinitionsParser) ParseFile(filename string) (*RootContainerDefinition, error) {
 	file, err := parseFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseContainerAST(file)
+	return p.parseContainerAST(file)
 }
 
-func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
+func (p *DefinitionsParser) ParseSource(source string) (*RootContainerDefinition, error) {
 	file, err := parseSource(source)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseContainerAST(file)
+	return p.parseContainerAST(file)
 }
 
-func ParseFactoryFromSource(source string) (*FactoryFile, error) {
-	file, err := parseSource(source)
+func (p *DefinitionsParser) parseContainerAST(file *ast.File) (*RootContainerDefinition, error) {
+	container, err := p.getContainer(file)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseFactoryAST(file)
-}
-
-func parseFile(filename string) (*ast.File, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-	if err != nil {
-		return nil, errors.Errorf("parse file %s: %w", filename, err)
-	}
-	return file, nil
-}
-
-func parseSource(source string) (*ast.File, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "", source, parser.ParseComments)
-	if err != nil {
-		return nil, errors.Errorf("parse source: %w", err)
-	}
-	return file, nil
-}
-
-func parseContainerAST(file *ast.File) (*RootContainerDefinition, error) {
-	container, err := getContainer(file)
-	if err != nil {
-		return nil, err
-	}
-
-	services, containers, err := createFactories(container)
+	services, containers, err := p.parseDefinitions(container)
 	if err != nil {
 		return nil, errors.Errorf("parse definitions: %w", err)
 	}
@@ -87,7 +73,7 @@ func parseContainerAST(file *ast.File) (*RootContainerDefinition, error) {
 	return definition, nil
 }
 
-func getContainer(file *ast.File) (*ast.StructType, error) {
+func (p *DefinitionsParser) getContainer(file *ast.File) (*ast.StructType, error) {
 	container := file.Scope.Objects["Container"]
 	if container == nil {
 		return nil, errors.Wrap(ErrContainerNotFound)
@@ -105,7 +91,7 @@ func getContainer(file *ast.File) (*ast.StructType, error) {
 	return containerStruct, nil
 }
 
-func createFactories(container *ast.StructType) ([]*ServiceDefinition, []*ContainerDefinition, error) {
+func (p *DefinitionsParser) parseDefinitions(container *ast.StructType) ([]*ServiceDefinition, []*ContainerDefinition, error) {
 	services := make([]*ServiceDefinition, 0)
 	containers := make([]*ContainerDefinition, 0)
 
@@ -118,14 +104,14 @@ func createFactories(container *ast.StructType) ([]*ServiceDefinition, []*Contai
 			continue
 		}
 
-		if isContainerDefinition(field) {
-			internalContainer, err := createContainerDefinition(field)
+		if p.isContainerDefinition(field) {
+			internalContainer, err := p.createContainerDefinition(field)
 			if err != nil {
 				return nil, nil, err
 			}
 			containers = append(containers, internalContainer)
 		} else {
-			service := newServiceDefinition(field, fieldType)
+			service := p.createServiceDefinition(field, fieldType)
 			services = append(services, service)
 		}
 	}
@@ -133,7 +119,7 @@ func createFactories(container *ast.StructType) ([]*ServiceDefinition, []*Contai
 	return services, containers, nil
 }
 
-func isContainerDefinition(field *ast.Field) bool {
+func (p *DefinitionsParser) isContainerDefinition(field *ast.Field) bool {
 	if id, ok := field.Type.(*ast.Ident); ok {
 		if id.Obj != nil {
 			if t, ok := id.Obj.Decl.(*ast.TypeSpec); ok {
@@ -147,7 +133,7 @@ func isContainerDefinition(field *ast.Field) bool {
 	return false
 }
 
-func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
+func (p *DefinitionsParser) createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
 	fieldType, err := parseFieldType(field)
 	if err != nil {
 		return nil, err
@@ -159,12 +145,12 @@ func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
 		Type: fieldType,
 	}
 
-	container, err := parseContainerField(field)
+	container, err := p.parseContainerField(field)
 	if err != nil {
 		return nil, err
 	}
 
-	definition.Services, err = createContainerServiceFactories(container, definition.Name)
+	definition.Services, err = p.parseServiceDefinitions(container, definition.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +158,40 @@ func createContainerDefinition(field *ast.Field) (*ContainerDefinition, error) {
 	return definition, nil
 }
 
-func createContainerServiceFactories(container *ast.StructType, path string) ([]*ServiceDefinition, error) {
+func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefinition {
+	name := parseFieldName(field)
+	tags := parseFieldTags(field)
+
+	definition := &ServiceDefinition{
+		ID:              p.nextID(),
+		Name:            name,
+		Type:            typeDef,
+		FactoryFileName: tags.FactoryFilename,
+		PublicName:      tags.PublicName,
+	}
+	if definition.FactoryFileName != "" {
+		definition.FactoryFileName += ".go"
+	}
+
+	for _, option := range tags.Options {
+		switch option {
+		case "set":
+			definition.HasSetter = true
+		case "close":
+			definition.HasCloser = true
+		case "required":
+			definition.IsRequired = true
+		case "public":
+			definition.IsPublic = true
+		case "external":
+			definition.IsExternal = true
+		}
+	}
+
+	return definition
+}
+
+func (p *DefinitionsParser) parseServiceDefinitions(container *ast.StructType, path string) ([]*ServiceDefinition, error) {
 	services := make([]*ServiceDefinition, 0)
 	err := validateInternalContainer(container)
 	if err != nil {
@@ -185,11 +204,11 @@ func createContainerServiceFactories(container *ast.StructType, path string) ([]
 			return nil, err
 		}
 
-		if isContainerDefinition(field) {
+		if p.isContainerDefinition(field) {
 			return nil, errors.Errorf("%w: %s", ErrNotSupported, "container inside container")
 		}
 
-		service := newServiceDefinition(field, fieldType)
+		service := p.createServiceDefinition(field, fieldType)
 		service.Prefix = path
 		services = append(services, service)
 	}
@@ -197,45 +216,32 @@ func createContainerServiceFactories(container *ast.StructType, path string) ([]
 	return services, nil
 }
 
-func parseImports(file *ast.File) (map[string]*ImportDefinition, error) {
-	imports := make(map[string]*ImportDefinition, len(file.Imports))
-
-	for _, spec := range file.Imports {
-		imp, err := parseImportDefinition(spec)
-		if err != nil {
-			return nil, err
-		}
-		imports[imp.ID] = imp
+func (p *DefinitionsParser) parseContainerField(field *ast.Field) (*ast.StructType, error) {
+	fieldDeclaration, ok := field.Names[0].Obj.Decl.(*ast.Field)
+	if !ok {
+		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected field declaration")
+	}
+	containerType, ok := fieldDeclaration.Type.(*ast.Ident)
+	if !ok {
+		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected container declaration")
+	}
+	typeSpecification, ok := containerType.Obj.Decl.(*ast.TypeSpec)
+	if !ok {
+		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected container type specification")
+	}
+	container, ok := typeSpecification.Type.(*ast.StructType)
+	if !ok {
+		return nil, errors.Errorf("%w: %s", ErrParsing, "container type must be struct")
 	}
 
-	return imports, nil
+	return container, nil
 }
 
-func parseImportDefinition(spec *ast.ImportSpec) (*ImportDefinition, error) {
-	definition := &ImportDefinition{}
+func (p *DefinitionsParser) nextID() int {
+	id := p.lastID
+	p.lastID++
 
-	if spec.Name != nil {
-		definition.Name = spec.Name.Name
-	}
-
-	if spec.Path != nil {
-		definition.Path = spec.Path.Value
-	}
-
-	if definition.Name != "" {
-		definition.ID = definition.Name
-	} else {
-		path, err := strconv.Unquote(definition.Path)
-		if err != nil {
-			return nil, errors.Errorf("parse import path: %w", err)
-		}
-		elements := strings.Split(path, "/")
-		if len(elements) > 0 {
-			definition.ID = elements[len(elements)-1]
-		}
-	}
-
-	return definition, nil
+	return id
 }
 
 func parseFieldName(field *ast.Field) string {
@@ -320,49 +326,6 @@ func parseFieldTags(field *ast.Field) Tags {
 		FactoryFilename: tag.Get("factory_file"),
 		PublicName:      tag.Get("public_name"),
 	}
-}
-
-func parseContainerField(field *ast.Field) (*ast.StructType, error) {
-	fieldDeclaration, ok := field.Names[0].Obj.Decl.(*ast.Field)
-	if !ok {
-		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected field declaration")
-	}
-	containerType, ok := fieldDeclaration.Type.(*ast.Ident)
-	if !ok {
-		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected container declaration")
-	}
-	typeSpecification, ok := containerType.Obj.Decl.(*ast.TypeSpec)
-	if !ok {
-		return nil, errors.Errorf("%w: %s", ErrParsing, "unexpected container type specification")
-	}
-	container, ok := typeSpecification.Type.(*ast.StructType)
-	if !ok {
-		return nil, errors.Errorf("%w: %s", ErrParsing, "container type must be struct")
-	}
-
-	return container, nil
-}
-
-func parseFactoryAST(file *ast.File) (*FactoryFile, error) {
-	imports, err := parseImports(file)
-	if err != nil {
-		return nil, errors.Errorf("parse imports: %w", err)
-	}
-
-	var services []string
-
-	for name, object := range file.Scope.Objects {
-		if object.Kind == ast.Fun && strings.HasPrefix(name, "Create") {
-			services = append(services, strings.TrimPrefix(name, "Create"))
-		}
-	}
-
-	factory := &FactoryFile{
-		Imports:  imports,
-		Services: services,
-	}
-
-	return factory, nil
 }
 
 func validateInternalContainer(container *ast.StructType) error {

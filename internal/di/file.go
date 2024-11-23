@@ -3,6 +3,7 @@ package di
 import (
 	"bytes"
 	"go/format"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/muonsoft/errors"
@@ -47,7 +48,6 @@ type FileBuilder struct {
 	fileName    string
 	packageName string
 	packageType PackageType
-	imports     []string
 	body        bytes.Buffer
 }
 
@@ -60,26 +60,12 @@ func NewFileBuilder(filename, packageName string, packageType PackageType) *File
 	}
 }
 
-func (b *FileBuilder) AddImport(imp string) {
-	if imp == "" {
-		return
-	}
-
-	for _, existingImport := range b.imports {
-		if existingImport == imp {
-			return
+func (b *FileBuilder) AddImportAliases(imports map[string]*ImportDefinition) {
+	for _, definition := range imports {
+		if definition.Name != "" {
+			b.file.ImportAlias(strings.Trim(definition.Path, `"`), definition.Name)
 		}
 	}
-
-	b.imports = append(b.imports, imp)
-}
-
-func (b *FileBuilder) Write(p []byte) (n int, err error) {
-	return b.body.Write(p)
-}
-
-func (b *FileBuilder) WriteString(s string) (n int, err error) {
-	return b.body.WriteString(s)
 }
 
 func (b *FileBuilder) Add(code ...jen.Code) *jen.Statement {

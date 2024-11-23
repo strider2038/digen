@@ -8,7 +8,8 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	topService *domain.Service
 
@@ -17,6 +18,7 @@ type Container struct {
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 	c.internalContainerName = &InternalContainerType{Container: c}
 
 	return c
@@ -43,8 +45,11 @@ type InternalContainerType struct {
 }
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
-	if c.topService == nil && c.err == nil {
+	if !c.init.IsSet(0) && c.err == nil {
 		c.topService = factories.CreateTopService(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
 	}
 	return c.topService
 }
@@ -54,15 +59,21 @@ func (c *Container) InternalContainerName() lookup.InternalContainerType {
 }
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
-	if c.firstService == nil && c.err == nil {
+	if !c.init.IsSet(1) && c.err == nil {
 		c.firstService = factories.CreateInternalContainerTypeFirstService(ctx, c)
+		if c.err == nil {
+			c.init.Set(1)
+		}
 	}
 	return c.firstService
 }
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
-	if c.secondService == nil && c.err == nil {
+	if !c.init.IsSet(2) && c.err == nil {
 		c.secondService = factories.CreateInternalContainerTypeSecondService(ctx, c)
+		if c.err == nil {
+			c.init.Set(2)
+		}
 	}
 	return c.secondService
 }
@@ -73,14 +84,16 @@ func (c *InternalContainerType) RequiredService(ctx context.Context) *domain.Ser
 
 func (c *InternalContainerType) SetSecondService(s *domain.Service) {
 	c.secondService = s
+	c.init.Set(2)
 }
 
 func (c *InternalContainerType) SetRequiredService(s *domain.Service) {
 	c.requiredService = s
+	c.init.Set(3)
 }
 
 func (c *Container) Close() {
-	if c.internalContainerName.secondService != nil {
+	if c.init.IsSet(2) {
 		c.internalContainerName.secondService.Close()
 	}
 }

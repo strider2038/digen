@@ -7,7 +7,8 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	firstService  *domain.Service
 	secondService *domain.Service
@@ -15,6 +16,7 @@ type Container struct {
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 
 	return c
 }
@@ -32,15 +34,21 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) FirstService(ctx context.Context) *domain.Service {
-	if c.firstService == nil && c.err == nil {
+	if !c.init.IsSet(0) && c.err == nil {
 		c.firstService = factories.CreateFirstService(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
 	}
 	return c.firstService
 }
 
 func (c *Container) SecondService(ctx context.Context) *domain.Service {
-	if c.secondService == nil && c.err == nil {
+	if !c.init.IsSet(1) && c.err == nil {
 		c.secondService = factories.CreateSecondService(ctx, c)
+		if c.err == nil {
+			c.init.Set(1)
+		}
 	}
 	return c.secondService
 }

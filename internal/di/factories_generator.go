@@ -37,6 +37,7 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 		}
 
 		file := NewFileBuilder(filename, "factories", FactoriesPackage)
+		file.AddImportAliases(g.container.Imports)
 
 		for _, service := range services {
 			file.Add(

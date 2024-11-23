@@ -23,6 +23,8 @@ func NewInternalContainerGenerator(container *RootContainerDefinition, params Ge
 }
 
 func (g *InternalContainerGenerator) Generate() (*File, error) {
+	g.file.AddImportAliases(g.container.Imports)
+
 	g.generateRootContainer()
 	g.generateContainers()
 	g.generateGetters()
@@ -36,8 +38,12 @@ func (g *InternalContainerGenerator) Generate() (*File, error) {
 }
 
 func (g *InternalContainerGenerator) generateRootContainer() {
-	fields := make([]jen.Code, 0, len(g.container.Services)+len(g.container.Containers)+1)
-	fields = append(fields, jen.Id("err").Error(), jen.Line())
+	fields := make([]jen.Code, 0, len(g.container.Services)+len(g.container.Containers)+3)
+	fields = append(fields,
+		jen.Id("err").Error(),
+		jen.Id("init").Qual("", "bitset"),
+		jen.Line(),
+	)
 	for _, service := range g.container.Services {
 		fields = append(fields, jen.
 			Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)),
@@ -47,9 +53,10 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 	if len(g.container.Containers) > 0 {
 		fields = append(fields, jen.Line())
 	}
-	constructorBlocks := make([]jen.Code, 0, 1+len(g.container.Containers))
+	constructorBlocks := make([]jen.Code, 0, 2+len(g.container.Containers))
 	constructorBlocks = append(constructorBlocks,
 		jen.Id("c").Op(":=").Op("&").Id("Container").Op("{}"),
+		jen.Id("c").Dot("init").Op("=").Make(jen.Id("bitset"), jen.Lit(len(g.container.Services)/64+1)),
 	)
 
 	for _, container := range g.container.Containers {
@@ -101,7 +108,10 @@ func (g *InternalContainerGenerator) generateContainers() {
 			fields = append(fields, jen.Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)))
 		}
 
-		g.file.Add(jen.Type().Id(strings.Title(container.Type.Name)).Struct(fields...))
+		g.file.Add(
+			jen.Line(),
+			jen.Type().Id(strings.Title(container.Type.Name)).Struct(fields...),
+		)
 	}
 }
 
@@ -132,21 +142,7 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 	for _, service := range services {
 		block := make([]jen.Code, 0, 2)
 		if !service.IsRequired {
-			var factoryCall jen.Code
-			if service.IsExternal {
-				factoryCall = jen.Panic(jen.Lit("missing " + service.Title()))
-			} else {
-				factoryCall = jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
-					Qual(g.params.packageName(FactoriesPackage), "Create"+service.Prefix+service.Title()).
-					Call(jen.Id("ctx"), jen.Id("c"))
-			}
-
-			statement := jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).
-				Do(service.Type.ZeroComparison()).Op("&&").
-				Op("c").Dot("err").Op("==").Nil()
-			block = append(block,
-				jen.If(statement).Block(factoryCall),
-			)
+			block = append(block, g.generateInitBlock(service))
 		}
 
 		block = append(block,
@@ -161,6 +157,30 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 
 		g.file.Add(jen.Line(), getter)
 	}
+}
+
+func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinition) *jen.Statement {
+	if service.IsExternal {
+		return jen.
+			If(
+				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("==").Nil().
+					Op("&&").Op("c").Dot("err").Op("==").Nil(),
+			).
+			Block(
+				jen.Panic(jen.Lit("missing " + service.Title())),
+			)
+	}
+
+	return jen.If(jen.Op("!").Id("c").Dot("init").Dot("IsSet").Call(jen.Lit(service.ID)).
+		Op("&&").Op("c").Dot("err").Op("==").Nil()).
+		Block(
+			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
+				Qual(g.params.packageName(FactoriesPackage), "Create"+strings.Title(service.Prefix)+service.Title()).
+				Call(jen.Id("ctx"), jen.Id("c")),
+			jen.If(jen.Id("c").Dot("err").Op("==").Nil()).Block(
+				jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
+			),
+		)
 }
 
 func (g *InternalContainerGenerator) generateSetters() {
@@ -179,10 +199,11 @@ func (g *InternalContainerGenerator) generateSetter(containerName string, servic
 	if service.HasSetter || service.IsExternal || service.IsRequired {
 		setter := jen.Func().
 			Params(jen.Id("c").Op("*").Id(containerName)).
-			Id("Set" + service.Title()).
+			Id("Set"+service.Title()).
 			Params(jen.Id("s").Do(g.container.Type(service.Type))).
 			Block(
 				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").Id("s"),
+				jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
 			)
 
 		g.file.Add(jen.Line(), setter)
@@ -194,24 +215,14 @@ func (g *InternalContainerGenerator) generateClosers() {
 
 	for _, service := range g.container.Services {
 		if service.HasCloser {
-			serviceName := strcase.ToLowerCamel(service.Name)
-			closers = append(closers,
-				jen.If(jen.Id("c").Dot(serviceName).Op("!=").Nil()).Block(
-					jen.Id("c").Dot(serviceName).Dot("Close").Call(),
-				),
-			)
+			closers = append(closers, g.generateCloser(service, nil))
 		}
 	}
 
 	for _, attachedContainer := range g.container.Containers {
 		for _, service := range attachedContainer.Services {
 			if service.HasCloser {
-				serviceName := strcase.ToLowerCamel(service.Name)
-				closers = append(closers,
-					jen.If(jen.Id("c").Dot(strcase.ToLowerCamel(attachedContainer.Name)).Dot(serviceName).Op("!=").Nil()).Block(
-						jen.Id("c").Dot(strcase.ToLowerCamel(attachedContainer.Name)).Dot(serviceName).Dot("Close").Call(),
-					),
-				)
+				closers = append(closers, g.generateCloser(service, attachedContainer))
 			}
 		}
 	}
@@ -223,4 +234,18 @@ func (g *InternalContainerGenerator) generateClosers() {
 			Params().
 			Block(closers...),
 	)
+}
+
+func (g *InternalContainerGenerator) generateCloser(service *ServiceDefinition, container *ContainerDefinition) *jen.Statement {
+	block := jen.Id("c")
+	if container != nil {
+		block = block.Dot(strcase.ToLowerCamel(container.Name))
+	}
+	block = block.Dot(strcase.ToLowerCamel(service.Name)).Dot("Close").Call()
+
+	return jen.
+		If(
+			jen.Id("c").Dot("init").Dot("IsSet").Call(jen.Lit(service.ID)),
+		).
+		Block(block)
 }

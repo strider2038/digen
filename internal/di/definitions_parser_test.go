@@ -100,48 +100,60 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 func assertExpectedContainerServices(t *testing.T, services []*di.ServiceDefinition) {
 	require.Len(t, services, 4)
 
-	assert.Equal(t, "Configuration", services[0].Name)
-	assert.Equal(t, "config", services[0].Type.Package)
-	assert.Equal(t, "Configuration", services[0].Type.Name)
-	assert.False(t, services[0].Type.IsPointer)
-	assert.False(t, services[0].HasSetter)
-	assert.False(t, services[0].HasCloser)
-	assert.False(t, services[0].IsRequired)
-	assert.False(t, services[0].IsPublic)
-	assert.False(t, services[0].IsExternal)
+	assert.Equal(t,
+		&di.ServiceDefinition{
+			Name: "Configuration",
+			Type: di.TypeDefinition{
+				Package: "config",
+				Name:    "Configuration",
+			},
+		},
+		services[0],
+	)
 
-	assert.Equal(t, "EntityRepository", services[1].Name)
-	assert.Equal(t, "domain", services[1].Type.Package)
-	assert.Equal(t, "EntityRepository", services[1].Type.Name)
-	assert.False(t, services[1].Type.IsPointer)
-	assert.True(t, services[1].HasSetter)
-	assert.True(t, services[1].HasCloser)
-	assert.True(t, services[1].IsRequired)
-	assert.True(t, services[1].IsPublic)
-	assert.True(t, services[1].IsExternal)
+	assert.Equal(t,
+		&di.ServiceDefinition{
+			ID:   1,
+			Name: "EntityRepository",
+			Type: di.TypeDefinition{
+				Package: "domain",
+				Name:    "EntityRepository",
+			},
+			HasSetter:  true,
+			HasCloser:  true,
+			IsRequired: true,
+			IsPublic:   true,
+			IsExternal: true,
+		},
+		services[1],
+	)
 
-	assert.Equal(t, "Handler", services[2].Name)
-	assert.Equal(t, "httpadapter", services[2].Type.Package)
-	assert.Equal(t, "GetEntityHandler", services[2].Type.Name)
-	assert.Equal(t, "http_handler.go", services[2].FactoryFileName)
-	assert.True(t, services[2].Type.IsPointer)
-	assert.False(t, services[2].HasSetter)
-	assert.False(t, services[2].HasCloser)
-	assert.False(t, services[2].IsRequired)
-	assert.False(t, services[2].IsPublic)
-	assert.False(t, services[2].IsExternal)
+	assert.Equal(t,
+		&di.ServiceDefinition{
+			ID:   2,
+			Name: "Handler",
+			Type: di.TypeDefinition{
+				IsPointer: true,
+				Package:   "httpadapter",
+				Name:      "GetEntityHandler",
+			},
+			FactoryFileName: "http_handler.go",
+		},
+		services[2],
+	)
 
-	assert.Equal(t, "Router", services[3].Name)
-	assert.Equal(t, "APIRouter", services[3].PublicName)
-	assert.Equal(t, "http", services[3].Type.Package)
-	assert.Equal(t, "Handler", services[3].Type.Name)
-	assert.Equal(t, "", services[3].FactoryFileName)
-	assert.False(t, services[3].Type.IsPointer)
-	assert.False(t, services[3].HasSetter)
-	assert.False(t, services[3].HasCloser)
-	assert.False(t, services[3].IsRequired)
-	assert.False(t, services[3].IsPublic)
-	assert.False(t, services[3].IsExternal)
+	assert.Equal(t,
+		&di.ServiceDefinition{
+			ID:         3,
+			Name:       "Router",
+			PublicName: "APIRouter",
+			Type: di.TypeDefinition{
+				Package: "http",
+				Name:    "Handler",
+			},
+		},
+		services[3],
+	)
 }
 
 func assertExpectedBasicTypes(t *testing.T, services []*di.ServiceDefinition) {

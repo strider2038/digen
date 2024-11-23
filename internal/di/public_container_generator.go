@@ -32,6 +32,8 @@ func NewPublicContainerGenerator(
 }
 
 func (g *PublicContainerGenerator) Generate() (*File, error) {
+	g.file.AddImportAliases(g.container.Imports)
+
 	g.file.Add(
 		jen.Type().Id("Container").Struct(
 			jen.Id("mu").Op("*").Qual("sync", "Mutex"),
@@ -64,7 +66,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	for _, attachedContainer := range g.container.Containers {
 		for _, service := range attachedContainer.Services {
 			if service.IsPublic {
-				methods = append(methods, jen.Line(), g.generateGetter(service, attachedContainer))
+				methods = append(methods, jen.Line(), jen.Line(), g.generateGetter(service, attachedContainer))
 			}
 			if service.HasSetter {
 				methods = append(methods, jen.Line(), jen.Line(), g.generateSetter(service, attachedContainer))

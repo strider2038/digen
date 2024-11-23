@@ -32,3 +32,30 @@ type Container struct {
 // 	entityRepository domain.EntityRepository
 // }
 `
+
+const bitsetSkeleton = `package internal
+
+type bitset []uint64
+
+func (b *bitset) Set(n int) {
+	i, j := b.split(n)
+	for i >= len(*b) {
+		*b = append(*b, 0)
+	}
+
+	(*b)[i] = (*b)[i] | (1 << j)
+}
+
+func (b bitset) IsSet(n int) bool {
+	i, j := b.split(n)
+	if i >= len(b) {
+		return false
+	}
+
+	return b[i]&(1<<j) != 0
+}
+
+func (b *bitset) split(n int) (int, int) {
+	return n >> 6, n & 0x3F
+}
+`

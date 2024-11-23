@@ -3,6 +3,7 @@ package di
 import (
 	"bytes"
 	"os"
+	"slices"
 
 	"github.com/muonsoft/errors"
 	"golang.org/x/mod/modfile"
@@ -64,6 +65,9 @@ func (g *Generator) Generate() error {
 		return err
 	}
 	if err := g.generateFactoriesFiles(container); err != nil {
+		return err
+	}
+	if err := g.generateUtils(); err != nil {
 		return err
 	}
 	if err := g.generateReadmeFile(); err != nil {
@@ -145,6 +149,29 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 
 		g.Logger.Info("factories file", file.Path(), "generated")
 	}
+
+	return nil
+}
+
+func (g *Generator) generateUtils() error {
+	heading, err := g.generateHeading()
+	if err != nil {
+		return err
+	}
+
+	file := &File{
+		Package: InternalPackage,
+		Name:    "bitset.go",
+		Content: slices.Concat(heading, []byte(bitsetSkeleton)),
+	}
+
+	writer := NewWriter(g.BaseDir)
+	writer.Overwrite = true
+	if err := writer.WriteFile(file); err != nil {
+		return err
+	}
+
+	g.Logger.Info("bitset file", file.Path(), "generated")
 
 	return nil
 }

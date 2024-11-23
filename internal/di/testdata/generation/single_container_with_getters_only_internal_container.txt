@@ -7,13 +7,15 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	serviceName *domain.Service
 }
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 
 	return c
 }
@@ -31,8 +33,11 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
-	if c.serviceName == nil && c.err == nil {
+	if !c.init.IsSet(0) && c.err == nil {
 		c.serviceName = factories.CreateServiceName(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
 	}
 	return c.serviceName
 }

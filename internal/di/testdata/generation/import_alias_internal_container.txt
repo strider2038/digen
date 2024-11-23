@@ -2,14 +2,15 @@ package internal
 
 import (
 	"context"
-	config "example.com/test/di/config"
+	factories "example.com/test/di/internal/factories"
+	httpadapter "example.com/test/infrastructure/api/http"
 )
 
 type Container struct {
 	err  error
 	init bitset
 
-	configuration config.Configuration
+	serviceName *httpadapter.ServiceHandler
 }
 
 func NewContainer() *Container {
@@ -31,13 +32,14 @@ func (c *Container) SetError(err error) {
 	}
 }
 
-func (c *Container) Configuration(ctx context.Context) config.Configuration {
-	return c.configuration
-}
-
-func (c *Container) SetConfiguration(s config.Configuration) {
-	c.configuration = s
-	c.init.Set(0)
+func (c *Container) ServiceName(ctx context.Context) *httpadapter.ServiceHandler {
+	if !c.init.IsSet(0) && c.err == nil {
+		c.serviceName = factories.CreateServiceName(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
+	}
+	return c.serviceName
 }
 
 func (c *Container) Close() {}

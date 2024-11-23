@@ -8,7 +8,8 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	stringOption   string
 	stringPointer  *string
@@ -20,6 +21,7 @@ type Container struct {
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 
 	return c
 }
@@ -37,43 +39,61 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) StringOption(ctx context.Context) string {
-	if c.stringOption == "" && c.err == nil {
+	if !c.init.IsSet(0) && c.err == nil {
 		c.stringOption = factories.CreateStringOption(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
 	}
 	return c.stringOption
 }
 
 func (c *Container) StringPointer(ctx context.Context) *string {
-	if c.stringPointer == nil && c.err == nil {
+	if !c.init.IsSet(1) && c.err == nil {
 		c.stringPointer = factories.CreateStringPointer(ctx, c)
+		if c.err == nil {
+			c.init.Set(1)
+		}
 	}
 	return c.stringPointer
 }
 
 func (c *Container) IntOption(ctx context.Context) int {
-	if c.intOption == 0 && c.err == nil {
+	if !c.init.IsSet(2) && c.err == nil {
 		c.intOption = factories.CreateIntOption(ctx, c)
+		if c.err == nil {
+			c.init.Set(2)
+		}
 	}
 	return c.intOption
 }
 
 func (c *Container) TimeOption(ctx context.Context) time.Time {
-	if c.timeOption.IsZero() && c.err == nil {
+	if !c.init.IsSet(3) && c.err == nil {
 		c.timeOption = factories.CreateTimeOption(ctx, c)
+		if c.err == nil {
+			c.init.Set(3)
+		}
 	}
 	return c.timeOption
 }
 
 func (c *Container) DurationOption(ctx context.Context) time.Duration {
-	if c.durationOption == 0 && c.err == nil {
+	if !c.init.IsSet(4) && c.err == nil {
 		c.durationOption = factories.CreateDurationOption(ctx, c)
+		if c.err == nil {
+			c.init.Set(4)
+		}
 	}
 	return c.durationOption
 }
 
 func (c *Container) URLOption(ctx context.Context) url.URL {
-	if c.urloption == new(url.URL) && c.err == nil {
+	if !c.init.IsSet(5) && c.err == nil {
 		c.urloption = factories.CreateURLOption(ctx, c)
+		if c.err == nil {
+			c.init.Set(5)
+		}
 	}
 	return c.urloption
 }

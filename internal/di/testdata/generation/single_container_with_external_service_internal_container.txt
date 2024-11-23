@@ -6,13 +6,15 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	serviceName *domain.Service
 }
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 
 	return c
 }
@@ -38,6 +40,7 @@ func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 
 func (c *Container) SetServiceName(s *domain.Service) {
 	c.serviceName = s
+	c.init.Set(0)
 }
 
 func (c *Container) Close() {}

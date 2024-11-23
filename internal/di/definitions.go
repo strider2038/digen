@@ -1,7 +1,6 @@
 package di
 
 import (
-	"go/ast"
 	"slices"
 	"strings"
 
@@ -14,14 +13,6 @@ type RootContainerDefinition struct {
 	Imports    map[string]*ImportDefinition
 	Services   []*ServiceDefinition
 	Containers []*ContainerDefinition
-}
-
-func (c RootContainerDefinition) GetImport(s *ServiceDefinition) string {
-	imp := c.Imports[s.Type.Package]
-	if imp == nil {
-		return ""
-	}
-	return imp.String()
 }
 
 func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement *jen.Statement) {
@@ -38,7 +29,8 @@ func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement 
 func (c RootContainerDefinition) PackageName(definition TypeDefinition) string {
 	packageName := ""
 	if imp, ok := c.Imports[definition.Package]; ok {
-		packageName = strings.Trim(imp.String(), `"`)
+		// todo: check parsing to remove cutset
+		packageName = strings.Trim(imp.Path, `"`)
 	}
 
 	return packageName
@@ -59,12 +51,13 @@ func (d ImportDefinition) String() string {
 }
 
 type ServiceDefinition struct {
+	ID     int
 	Prefix string
 	Name   string
 	Type   TypeDefinition
 
-	FactoryFileName string // "factory_file" tag
 	PublicName      string // "public_name" tag
+	FactoryFileName string // "factory_file" tag
 
 	// options from tag "di"
 	HasSetter  bool // "set" tag - will generate setters for internal and public containers
@@ -84,38 +77,6 @@ func (s ServiceDefinition) PublicTitle() string {
 	}
 
 	return s.Title()
-}
-
-func newServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefinition {
-	name := parseFieldName(field)
-	tags := parseFieldTags(field)
-
-	definition := &ServiceDefinition{
-		Name:            name,
-		Type:            typeDef,
-		FactoryFileName: tags.FactoryFilename,
-		PublicName:      tags.PublicName,
-	}
-	if definition.FactoryFileName != "" {
-		definition.FactoryFileName += ".go"
-	}
-
-	for _, option := range tags.Options {
-		switch option {
-		case "set":
-			definition.HasSetter = true
-		case "close":
-			definition.HasCloser = true
-		case "required":
-			definition.IsRequired = true
-		case "public":
-			definition.IsPublic = true
-		case "external":
-			definition.IsExternal = true
-		}
-	}
-
-	return definition
 }
 
 type ContainerDefinition struct {

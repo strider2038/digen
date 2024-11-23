@@ -15,6 +15,7 @@ func NewLookupContainerGenerator(container *RootContainerDefinition) *LookupCont
 func (g *LookupContainerGenerator) Generate() (*File, error) {
 	file := NewFileBuilder("container.go", "lookup", LookupPackage)
 
+	file.AddImportAliases(g.container.Imports)
 	file.Add(g.generateRootContainerInterface())
 
 	for _, attachedContainer := range g.container.Containers {

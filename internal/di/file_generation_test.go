@@ -57,8 +57,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain":      {Path: `"example.com/test/domain"`},
-					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+					"domain": {Path: `"example.com/test/domain"`},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -90,8 +89,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain":      {Path: `"example.com/test/domain"`},
-					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+					"domain": {Path: `"example.com/test/domain"`},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -119,8 +117,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain":      {Path: `"example.com/test/domain"`},
-					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+					"domain": {Path: `"example.com/test/domain"`},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -346,6 +343,34 @@ func TestGenerate(t *testing.T) {
 			},
 		},
 		{
+			name: "import alias generation check",
+			container: &di.RootContainerDefinition{
+				Name: "Container",
+				Imports: map[string]*di.ImportDefinition{
+					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+				},
+				Services: []*di.ServiceDefinition{
+					{
+						Name: "serviceName",
+						Type: di.TypeDefinition{
+							IsPointer: true,
+							Package:   "httpadapter",
+							Name:      "ServiceHandler",
+						},
+						IsPublic: true,
+					},
+				},
+			},
+			assert: func(t *testing.T, files []*di.File) {
+				t.Helper()
+
+				require.Len(t, files, 3)
+				assert.Equal(t, importAliasInternalContainer, string(files[0].Content))
+				assert.Equal(t, importAliasLookupContainer, string(files[1].Content))
+				assert.Equal(t, importAliasPublicContainer, string(files[2].Content))
+			},
+		},
+		{
 			name: "override service public name",
 			container: &di.RootContainerDefinition{
 				Name:    "Container",
@@ -389,6 +414,18 @@ func TestGenerate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			id := 0
+			for _, service := range test.container.Services {
+				service.ID = id
+				id++
+			}
+			for _, container := range test.container.Containers {
+				for _, service := range container.Services {
+					service.ID = id
+					id++
+				}
+			}
+
 			files, err := di.GenerateFiles(test.container, di.GenerationParameters{
 				RootPackage: "example.com/test/di",
 			})
@@ -438,4 +475,11 @@ var (
 	separateLookupContainerFile string
 	//go:embed testdata/generation/separate_container_public_file.txt
 	separateContainerPublicFile string
+
+	//go:embed testdata/generation/import_alias_internal_container.txt
+	importAliasInternalContainer string
+	//go:embed testdata/generation/import_alias_lookup_container.txt
+	importAliasLookupContainer string
+	//go:embed testdata/generation/import_alias_public_container.txt
+	importAliasPublicContainer string
 )

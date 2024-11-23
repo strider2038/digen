@@ -7,13 +7,15 @@ import (
 )
 
 type Container struct {
-	err error
+	err  error
+	init bitset
 
 	connection sql.Connection
 }
 
 func NewContainer() *Container {
 	c := &Container{}
+	c.init = make(bitset, 1)
 
 	return c
 }
@@ -31,14 +33,17 @@ func (c *Container) SetError(err error) {
 }
 
 func (c *Container) Connection(ctx context.Context) sql.Connection {
-	if c.connection == nil && c.err == nil {
+	if !c.init.IsSet(0) && c.err == nil {
 		c.connection = factories.CreateConnection(ctx, c)
+		if c.err == nil {
+			c.init.Set(0)
+		}
 	}
 	return c.connection
 }
 
 func (c *Container) Close() {
-	if c.connection != nil {
+	if c.init.IsSet(0) {
 		c.connection.Close()
 	}
 }
