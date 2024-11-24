@@ -32,6 +32,7 @@ type File struct {
 	Package PackageType
 	Name    string
 	Content []byte
+	Append  bool
 }
 
 func (f *File) Path() string {
@@ -41,6 +42,10 @@ func (f *File) Path() string {
 	}
 
 	return path + f.Name
+}
+
+func (f *File) IsEmpty() bool {
+	return len(f.Content) == 0
 }
 
 type FileBuilder struct {

@@ -146,20 +146,28 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 		RootPackage:   g.RootPackage(),
 		ErrorHandling: g.ErrorWrapping.Defaults(),
 	}
-	manager := NewFactoriesGenerator(container, g.BaseDir, params)
-	files, err := manager.Generate()
+	generator := NewFactoriesGenerator(container, g.BaseDir, params)
+	files, err := generator.Generate()
 	if err != nil {
 		return err
 	}
 
 	for _, file := range files {
+		if file.IsEmpty() {
+			continue
+		}
 		writer := NewWriter(g.BaseDir)
+		writer.Append = file.Append
 		err = writer.WriteFile(file)
 		if err != nil {
 			return err
 		}
 
-		g.Logger.Info("factories file", file.Path(), "generated")
+		action := "generated"
+		if writer.Append {
+			action = "updated"
+		}
+		g.Logger.Info("factories file", file.Path(), action)
 	}
 
 	return nil
@@ -183,7 +191,7 @@ func (g *Generator) generateUtils() error {
 		return err
 	}
 
-	g.Logger.Info("bitset file", file.Path(), "generated")
+	g.Logger.Info("file", file.Path(), "generated")
 
 	return nil
 }
