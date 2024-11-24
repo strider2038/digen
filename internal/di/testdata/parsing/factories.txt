@@ -1,0 +1,20 @@
+package factories
+
+import (
+	"example.com/test/application/usecase"
+	"example.com/test/domain"
+	httpadapter "example.com/test/infrastructure/api/http"
+	"example.com/test/infrastructure/inmemory"
+)
+
+func CreateEntityRepository(c Container) domain.EntityRepository {
+	return inmemory.NewEntityRepository()
+}
+
+func CreateUseCase(c Container) *usecase.FindEntity {
+	return usecase.NewFindEntity(c.EntityRepository())
+}
+
+func CreateHandler(c Container) *httpadapter.GetEntityHandler {
+	return httpadapter.NewGetEntityHandler(c.UseCase())
+}

@@ -1,0 +1,14 @@
+package di
+
+import (
+	"time"
+)
+
+type Container struct {
+	StringOption   string
+	IntOption      int
+	DurationOption time.Duration
+	StringPointer  *string
+	IntSlice       []int
+	StringMap      map[string]string
+}

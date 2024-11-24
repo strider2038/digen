@@ -1,0 +1,11 @@
+package factories
+
+import (
+	"context"
+	lookup "example.com/test/di/internal/lookup"
+	domain "example.com/test/domain"
+)
+
+func CreateServiceName(ctx context.Context, c lookup.Container) (*domain.Service, error) {
+	panic("not implemented")
+}

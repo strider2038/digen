@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
+	"github.com/earthboundkid/versioninfo/v2"
 	"github.com/pterm/pterm"
-	"github.com/strider2038/digen/internal/console"
+	"github.com/strider2038/digen/internal/app"
 )
 
 var (
@@ -13,9 +14,13 @@ var (
 )
 
 func main() {
-	err := console.Execute(
-		console.Version(version),
-		console.BuildTime(date),
+	if version == "" {
+		version = versioninfo.Short()
+		date = versioninfo.LastCommit.String()
+	}
+	err := app.Execute(
+		app.SetVersion(version),
+		app.SetBuildTime(date),
 	)
 	if err != nil {
 		pterm.Error.Println(err)
