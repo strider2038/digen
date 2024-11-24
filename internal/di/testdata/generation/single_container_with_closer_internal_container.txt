@@ -4,6 +4,7 @@ import (
 	"context"
 	factories "example.com/test/di/internal/factories"
 	sql "example.com/test/sql"
+	"fmt"
 )
 
 type Container struct {
@@ -34,7 +35,11 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) Connection(ctx context.Context) sql.Connection {
 	if !c.init.IsSet(0) && c.err == nil {
-		c.connection = factories.CreateConnection(ctx, c)
+		var err error
+		c.connection, err = factories.CreateConnection(ctx, c)
+		if err != nil {
+			c.SetError(fmt.Errorf("create Connection: %w", err))
+		}
 		c.init.Set(0)
 	}
 	return c.connection

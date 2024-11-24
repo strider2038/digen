@@ -49,10 +49,12 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	methods := make([]jen.Code, 0, 2*len(g.container.Services))
 	arguments := make([]jen.Code, 0, 1)
 	argumentSetters := make([]jen.Code, 0)
+	gettersCount := 0
 
 	for _, service := range g.container.Services {
 		if service.IsPublic {
 			methods = append(methods, jen.Line(), jen.Line(), g.generateGetter(service, nil))
+			gettersCount++
 		}
 		if service.HasSetter {
 			methods = append(methods, jen.Line(), jen.Line(), g.generateSetter(service, nil))
@@ -67,6 +69,7 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 		for _, service := range attachedContainer.Services {
 			if service.IsPublic {
 				methods = append(methods, jen.Line(), jen.Line(), g.generateGetter(service, attachedContainer))
+				gettersCount++
 			}
 			if service.HasSetter {
 				methods = append(methods, jen.Line(), jen.Line(), g.generateSetter(service, attachedContainer))
@@ -88,6 +91,9 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	g.file.Add(g.generateConstructor(arguments, argumentSetters))
 	g.file.Add(methods...)
 	g.file.Add(jen.Line(), g.generateCloser())
+	if gettersCount > 0 {
+		g.file.Add(g.generateErrorHandler()...)
+	}
 
 	return g.file.GetFile()
 }
@@ -133,15 +139,27 @@ func (g *PublicContainerGenerator) generateGetter(service *ServiceDefinition, co
 			jen.Id("ctx").Qual("context", "Context"),
 		).
 		Params(
-			jen.Do(g.container.Type(service.Type)),
-			jen.Error(),
+			jen.Id("s").Do(g.container.Type(service.Type)),
+			jen.Err().Error(),
 		).
 		Block(
 			jen.Id("c").Dot("mu").Dot("Lock").Call(),
 			jen.Defer().Id("c").Dot("mu").Dot("Unlock").Call(),
 			jen.Line(),
-			jen.Id("s").Op(":=").Id("c").Dot("c").Do(g.containerPath(container)).Dot(service.Title()).Call(jen.Id("ctx")),
-			jen.Id("err").Op(":=").Id("c").Dot("c").Dot("Error").Call(),
+			jen.Defer().Func().Call().Block(
+				jen.If(
+					jen.Id("recovered").Op(":=").Recover(),
+					jen.Id("recovered").Op("!=").Nil(),
+				).Block(
+					jen.Err().Op("=").Id("newRecoveredError").Call(
+						jen.Id("recovered"),
+						jen.Id("c").Dot("c").Dot("Error").Call(),
+					),
+				),
+			).Call(),
+			jen.Line(),
+			jen.Id("s").Op("=").Id("c").Dot("c").Do(g.containerPath(container)).Dot(service.Title()).Call(jen.Id("ctx")),
+			jen.Id("err").Op("=").Id("c").Dot("c").Dot("Error").Call(),
 			jen.Line(),
 			jen.Return(jen.Id("s"), jen.Err()),
 		)
@@ -204,5 +222,40 @@ func (g *PublicContainerGenerator) containerPath(container *ContainerDefinition)
 			Assert(
 				jen.Op("*").Qual(g.params.packageName(InternalPackage), container.Type.Name),
 			)
+	}
+}
+
+func (g *PublicContainerGenerator) generateErrorHandler() []jen.Code {
+	errPackage := g.params.ErrorHandling.Package
+	wrapPackage := g.params.ErrorHandling.WrapPackage
+	errFunc := g.params.ErrorHandling.WrapFunction
+	errVerb := g.params.ErrorHandling.Verb
+
+	return []jen.Code{
+		jen.Line(),
+		jen.Func().Id("newRecoveredError").
+			Params(
+				jen.Id("recovered").Any(),
+				jen.Id("err").Error(),
+			).
+			Error().
+			Block(
+				jen.Id("r").Op(":=").Qual(wrapPackage, errFunc).Call(
+					jen.Lit("panic: %v"),
+					jen.Id("recovered"),
+				),
+				jen.If(jen.Err().Op("!=").Nil()).Block(
+					jen.Return(
+						jen.Qual(errPackage, "Join").Call(
+							jen.Id("r"),
+							jen.Qual(wrapPackage, errFunc).Call(
+								jen.Lit("previous error: "+errVerb),
+								jen.Err(),
+							),
+						),
+					),
+				),
+				jen.Return(jen.Id("r")),
+			),
 	}
 }

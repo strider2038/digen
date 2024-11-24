@@ -408,7 +408,7 @@ func TestGenerate(t *testing.T) {
 				require.GreaterOrEqual(t, len(files), 3)
 				assert.Contains(
 					t, string(files[2].Content),
-					`func (c *Container) APIRouter(ctx context.Context) (http.Handler, error) {`,
+					`func (c *Container) APIRouter(ctx context.Context) (s http.Handler, err error) {`,
 				)
 			},
 		},
@@ -428,7 +428,8 @@ func TestGenerate(t *testing.T) {
 			}
 
 			files, err := di.GenerateFiles(test.container, di.GenerationParameters{
-				RootPackage: "example.com/test/di",
+				RootPackage:   "example.com/test/di",
+				ErrorHandling: di.ErrorHandling{}.Defaults(),
 			})
 
 			require.NoError(t, err)

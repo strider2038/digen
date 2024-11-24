@@ -168,14 +168,46 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 			)
 	}
 
+	factoryName := strings.Title(service.Prefix) + service.Title()
+
+	withError := true
+	if factory, exists := g.container.Factories[factoryName]; exists {
+		withError = factory.ReturnsError
+	}
+
+	block := make([]jen.Code, 0, 2)
+	if withError {
+		block = append(block,
+			jen.Var().Id("err").Error(),
+			jen.
+				List(
+					jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)),
+					jen.Id("err"),
+				).
+				Op("=").
+				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
+				Call(jen.Id("ctx"), jen.Id("c")),
+			jen.If(jen.Id("err").Op("!=").Nil()).Block(
+				jen.Id("c").Dot("SetError").Call(
+					g.params.wrapError("create "+factoryName, jen.Id("err")),
+				),
+			),
+		)
+	} else {
+		block = append(block,
+			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
+				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
+				Call(jen.Id("ctx"), jen.Id("c")),
+		)
+	}
+
+	block = append(block,
+		jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
+	)
+
 	return jen.If(jen.Op("!").Id("c").Dot("init").Dot("IsSet").Call(jen.Lit(service.ID)).
 		Op("&&").Op("c").Dot("err").Op("==").Nil()).
-		Block(
-			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
-				Qual(g.params.packageName(FactoriesPackage), "Create"+strings.Title(service.Prefix)+service.Title()).
-				Call(jen.Id("ctx"), jen.Id("c")),
-			jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
-		)
+		Block(block...)
 }
 
 func (g *InternalContainerGenerator) generateSetters() {

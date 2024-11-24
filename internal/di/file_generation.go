@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dave/jennifer/jen"
 	"github.com/muonsoft/errors"
 )
 
@@ -16,7 +17,32 @@ func GenerateDefinitionsContainerFile() *File {
 }
 
 type GenerationParameters struct {
-	RootPackage string
+	RootPackage   string
+	ErrorHandling ErrorHandling
+}
+
+type ErrorHandling struct {
+	Package      string
+	WrapPackage  string
+	WrapFunction string
+	Verb         string
+}
+
+func (w ErrorHandling) Defaults() ErrorHandling {
+	if w.Package == "" {
+		w.Package = "errors"
+	}
+	if w.WrapPackage == "" {
+		w.WrapPackage = "fmt"
+	}
+	if w.WrapFunction == "" {
+		w.WrapFunction = "Errorf"
+	}
+	if w.Verb == "" {
+		w.Verb = "%w"
+	}
+
+	return w
 }
 
 func (params *GenerationParameters) rootPackageName() string {
@@ -29,6 +55,14 @@ func (params *GenerationParameters) rootPackageName() string {
 
 func (params *GenerationParameters) packageName(packageType PackageType) string {
 	return strings.Trim(strconv.Quote(params.RootPackage+"/"+packageDirs[packageType]), `"`)
+}
+
+func (params *GenerationParameters) wrapError(message string, errorIdentifier jen.Code) *jen.Statement {
+	path := params.ErrorHandling.WrapPackage
+	funcName := params.ErrorHandling.WrapFunction
+	verb := params.ErrorHandling.Verb
+
+	return jen.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
 }
 
 func GenerateFiles(container *RootContainerDefinition, params GenerationParameters) ([]*File, error) {

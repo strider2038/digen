@@ -68,6 +68,7 @@ func (p *DefinitionsParser) parseContainerAST(file *ast.File) (*RootContainerDef
 		Imports:    imports,
 		Services:   services,
 		Containers: containers,
+		Factories:  make(map[string]*FactoryDefinition, 0),
 	}
 
 	return definition, nil
@@ -314,6 +315,12 @@ func parseTypeDefinition(expr ast.Expr) (TypeDefinition, error) {
 	return TypeDefinition{}, errors.Errorf("%w: %s", ErrUnexpectedType, "parse type")
 }
 
+type Tags struct {
+	Options         []string
+	FactoryFilename string
+	PublicName      string
+}
+
 func parseFieldTags(field *ast.Field) Tags {
 	if field.Tag == nil || len(field.Tag.Value) == 0 {
 		return Tags{}
@@ -334,4 +341,22 @@ func validateInternalContainer(container *ast.StructType) error {
 	}
 
 	return nil
+}
+
+type FuncDeclaration struct {
+	ReturnsErr bool
+}
+
+func parseFuncDeclaration(decl *ast.FuncDecl) (FuncDeclaration, error) {
+	declaration := FuncDeclaration{}
+
+	if decl.Type.Results != nil {
+		for _, field := range decl.Type.Results.List {
+			if id, ok := field.Type.(*ast.Ident); ok && id.Name == "error" {
+				declaration.ReturnsErr = true
+			}
+		}
+	}
+
+	return declaration, nil
 }

@@ -2,8 +2,10 @@ package di
 
 import (
 	"context"
+	"errors"
 	internal "example.com/test/di/internal"
 	domain "example.com/test/domain"
+	"fmt"
 	"sync"
 )
 
@@ -32,12 +34,18 @@ func NewContainer(requiredService *domain.Service, injectors ...Injector) (*Cont
 	return c, nil
 }
 
-func (c *Container) FirstService(ctx context.Context) (*domain.Service, error) {
+func (c *Container) FirstService(ctx context.Context) (s *domain.Service, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := c.c.InternalContainerName().(*internal.InternalContainerType).FirstService(ctx)
-	err := c.c.Error()
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = newRecoveredError(recovered, c.c.Error())
+		}
+	}()
+
+	s = c.c.InternalContainerName().(*internal.InternalContainerType).FirstService(ctx)
+	err = c.c.Error()
 
 	return s, err
 }
@@ -55,4 +63,12 @@ func (c *Container) Close() {
 	defer c.mu.Unlock()
 
 	c.c.Close()
+}
+
+func newRecoveredError(recovered any, err error) error {
+	r := fmt.Errorf("panic: %v", recovered)
+	if err != nil {
+		return errors.Join(r, fmt.Errorf("previous error: %w", err))
+	}
+	return r
 }

@@ -11,12 +11,14 @@ import (
 
 const (
 	definitionsFile = "internal/definitions/container.go"
+	factoriesDir    = "internal/factories"
 )
 
 type Generator struct {
-	BaseDir    string
-	ModulePath string
-	Logger     Logger
+	BaseDir       string
+	ModulePath    string
+	Logger        Logger
+	ErrorWrapping ErrorHandling
 
 	Version   string
 	BuildTime string
@@ -56,10 +58,18 @@ func (g *Generator) Generate() error {
 
 	container, err := ParseDefinitionsFromFile(g.BaseDir + "/" + definitionsFile)
 	if err != nil {
-		return err
+		return errors.Errorf("parse definitions file: %w", err)
 	}
-
 	g.Logger.Info("definitions container", definitionsFile, "successfully parsed")
+
+	factories, err := ParseFactoriesFromDir(g.BaseDir + "/" + factoriesDir)
+	if err != nil {
+		return errors.Errorf("parse factories: %w", err)
+	}
+	if len(factories.Factories) > 0 {
+		container.Factories = factories.Factories
+		g.Logger.Info("factories", factoriesDir, "successfully parsed")
+	}
 
 	if err := g.generateContainerFiles(container); err != nil {
 		return err
@@ -104,7 +114,8 @@ func (g *Generator) init() error {
 
 func (g *Generator) generateContainerFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
-		RootPackage: g.RootPackage(),
+		RootPackage:   g.RootPackage(),
+		ErrorHandling: g.ErrorWrapping.Defaults(),
 	}
 
 	files, err := GenerateFiles(container, params)
@@ -132,7 +143,8 @@ func (g *Generator) generateContainerFiles(container *RootContainerDefinition) e
 
 func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
-		RootPackage: g.RootPackage(),
+		RootPackage:   g.RootPackage(),
+		ErrorHandling: g.ErrorWrapping.Defaults(),
 	}
 	manager := NewFactoriesGenerator(container, g.BaseDir, params)
 	files, err := manager.Generate()

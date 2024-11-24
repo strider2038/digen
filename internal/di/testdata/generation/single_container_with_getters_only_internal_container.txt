@@ -4,6 +4,7 @@ import (
 	"context"
 	factories "example.com/test/di/internal/factories"
 	domain "example.com/test/domain"
+	"fmt"
 )
 
 type Container struct {
@@ -34,7 +35,11 @@ func (c *Container) SetError(err error) {
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(0) && c.err == nil {
-		c.serviceName = factories.CreateServiceName(ctx, c)
+		var err error
+		c.serviceName, err = factories.CreateServiceName(ctx, c)
+		if err != nil {
+			c.SetError(fmt.Errorf("create ServiceName: %w", err))
+		}
 		c.init.Set(0)
 	}
 	return c.serviceName

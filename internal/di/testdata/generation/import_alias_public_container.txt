@@ -2,8 +2,10 @@ package di
 
 import (
 	"context"
+	"errors"
 	internal "example.com/test/di/internal"
 	httpadapter "example.com/test/infrastructure/api/http"
+	"fmt"
 	"sync"
 )
 
@@ -30,12 +32,18 @@ func NewContainer(injectors ...Injector) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) ServiceName(ctx context.Context) (*httpadapter.ServiceHandler, error) {
+func (c *Container) ServiceName(ctx context.Context) (s *httpadapter.ServiceHandler, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	s := c.c.ServiceName(ctx)
-	err := c.c.Error()
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = newRecoveredError(recovered, c.c.Error())
+		}
+	}()
+
+	s = c.c.ServiceName(ctx)
+	err = c.c.Error()
 
 	return s, err
 }
@@ -45,4 +53,12 @@ func (c *Container) Close() {
 	defer c.mu.Unlock()
 
 	c.c.Close()
+}
+
+func newRecoveredError(recovered any, err error) error {
+	r := fmt.Errorf("panic: %v", recovered)
+	if err != nil {
+		return errors.Join(r, fmt.Errorf("previous error: %w", err))
+	}
+	return r
 }

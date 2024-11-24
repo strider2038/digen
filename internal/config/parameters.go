@@ -13,12 +13,20 @@ import (
 var errInvalidPath = errors.New("invalid path")
 
 type Parameters struct {
-	Version   string    `json:"version" yaml:"version"`
-	Container Container `json:"container" yaml:"container"`
+	Version       string        `json:"version" yaml:"version"`
+	Container     Container     `json:"container" yaml:"container"`
+	ErrorHandling ErrorHandling `json:"errorHandling" yaml:"errorHandling"`
 }
 
 type Container struct {
 	Dir string `json:"dir" yaml:"dir"`
+}
+
+type ErrorHandling struct {
+	Package      string `json:"package" yaml:"package"`
+	WrapPackage  string `json:"wrapPackage" yaml:"wrapPackage"`
+	WrapFunction string `json:"function" yaml:"function"`
+	Verb         string `json:"verb" yaml:"verb"`
 }
 
 func Load() (*Parameters, error) {
@@ -93,6 +101,9 @@ func initConfig(config *viper.Viper) error {
 
 	config.Set("version", Version)
 	config.Set("container.dir", dir)
+	config.Set("errorHandling.package", "errors")
+	config.Set("errorHandling.wrapPackage", "fmt")
+	config.Set("errorHandling.wrapFunction", "Errorf")
 	err = config.SafeWriteConfig()
 	if err != nil {
 		return errors.Errorf("write config: %w", err)

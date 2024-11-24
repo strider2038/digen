@@ -5,6 +5,7 @@ import (
 	factories "example.com/test/di/internal/factories"
 	lookup "example.com/test/di/internal/lookup"
 	domain "example.com/test/domain"
+	"fmt"
 )
 
 type Container struct {
@@ -46,7 +47,11 @@ type InternalContainerType struct {
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(0) && c.err == nil {
-		c.topService = factories.CreateTopService(ctx, c)
+		var err error
+		c.topService, err = factories.CreateTopService(ctx, c)
+		if err != nil {
+			c.SetError(fmt.Errorf("create TopService: %w", err))
+		}
 		c.init.Set(0)
 	}
 	return c.topService
@@ -58,7 +63,11 @@ func (c *Container) InternalContainerName() lookup.InternalContainerType {
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(1) && c.err == nil {
-		c.firstService = factories.CreateInternalContainerTypeFirstService(ctx, c)
+		var err error
+		c.firstService, err = factories.CreateInternalContainerTypeFirstService(ctx, c)
+		if err != nil {
+			c.SetError(fmt.Errorf("create InternalContainerTypeFirstService: %w", err))
+		}
 		c.init.Set(1)
 	}
 	return c.firstService
@@ -66,7 +75,11 @@ func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Servic
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(2) && c.err == nil {
-		c.secondService = factories.CreateInternalContainerTypeSecondService(ctx, c)
+		var err error
+		c.secondService, err = factories.CreateInternalContainerTypeSecondService(ctx, c)
+		if err != nil {
+			c.SetError(fmt.Errorf("create InternalContainerTypeSecondService: %w", err))
+		}
 		c.init.Set(2)
 	}
 	return c.secondService

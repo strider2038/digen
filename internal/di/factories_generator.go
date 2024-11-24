@@ -47,7 +47,10 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 						jen.Id("ctx").Qual("context", "Context"),
 						jen.Id("c").Qual(g.params.packageName(LookupPackage), "Container"),
 					).
-					Do(g.container.Type(service.Type)).
+					Params(
+						jen.Do(g.container.Type(service.Type)),
+						jen.Error(),
+					).
 					Block(jen.Panic(jen.Lit("not implemented"))),
 			)
 		}

@@ -58,7 +58,7 @@ func TestParseContainerFromSource(t *testing.T) {
 }
 
 func TestParseFactoryFromSource(t *testing.T) {
-	factory, err := di.ParseFactoryFromSource(testFactorySource)
+	factory, err := di.ParseFactoriesFromSource(testFactorySource)
 
 	require.NoError(t, err)
 	require.NotNil(t, factory)
@@ -66,9 +66,9 @@ func TestParseFactoryFromSource(t *testing.T) {
 	assert.NotNil(t, factory.Imports["domain"])
 	assert.NotNil(t, factory.Imports["httpadapter"])
 	assert.NotNil(t, factory.Imports["inmemory"])
-	assert.Contains(t, factory.Services, "EntityRepository")
-	assert.Contains(t, factory.Services, "UseCase")
-	assert.Contains(t, factory.Services, "Handler")
+	assert.Contains(t, factory.Factories, "EntityRepository")
+	assert.Contains(t, factory.Factories, "UseCase")
+	assert.Contains(t, factory.Factories, "Handler")
 }
 
 func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportDefinition) {

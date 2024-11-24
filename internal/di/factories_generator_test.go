@@ -21,7 +21,7 @@ func TestFactoriesGenerator_Generate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{

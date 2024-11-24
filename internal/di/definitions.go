@@ -13,6 +13,7 @@ type RootContainerDefinition struct {
 	Imports    map[string]*ImportDefinition
 	Services   []*ServiceDefinition
 	Containers []*ContainerDefinition
+	Factories  map[string]*FactoryDefinition
 }
 
 func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement *jen.Statement) {
@@ -150,13 +151,28 @@ func (d TypeDefinition) String() string {
 	return s.String()
 }
 
-type FactoryFile struct {
-	Imports  map[string]*ImportDefinition
-	Services []string
+type FactoryDefinitions struct {
+	Imports   map[string]*ImportDefinition
+	Factories map[string]*FactoryDefinition
 }
 
-type Tags struct {
-	Options         []string
-	FactoryFilename string
-	PublicName      string
+func NewFactoryDefinitions() *FactoryDefinitions {
+	return &FactoryDefinitions{
+		Imports:   map[string]*ImportDefinition{},
+		Factories: map[string]*FactoryDefinition{},
+	}
+}
+
+func (d *FactoryDefinitions) merge(df *FactoryDefinitions) {
+	for k, v := range df.Factories {
+		d.Factories[k] = v
+	}
+	for k, v := range df.Imports {
+		d.Imports[k] = v
+	}
+}
+
+type FactoryDefinition struct {
+	Name         string
+	ReturnsError bool
 }
