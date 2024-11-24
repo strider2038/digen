@@ -17,6 +17,8 @@ type Container struct {
 	timeOption     time.Time
 	durationOption time.Duration
 	urloption      url.URL
+	intSlice       []int
+	stringMap      map[string]string
 }
 
 func NewContainer() *Container {
@@ -84,6 +86,22 @@ func (c *Container) URLOption(ctx context.Context) url.URL {
 		c.init.Set(5)
 	}
 	return c.urloption
+}
+
+func (c *Container) IntSlice(ctx context.Context) []int {
+	if !c.init.IsSet(6) && c.err == nil {
+		c.intSlice = factories.CreateIntSlice(ctx, c)
+		c.init.Set(6)
+	}
+	return c.intSlice
+}
+
+func (c *Container) StringMap(ctx context.Context) map[string]string {
+	if !c.init.IsSet(7) && c.err == nil {
+		c.stringMap = factories.CreateStringMap(ctx, c)
+		c.init.Set(7)
+	}
+	return c.stringMap
 }
 
 func (c *Container) Close() {}

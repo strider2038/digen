@@ -202,6 +202,14 @@ func TestGenerate(t *testing.T) {
 						Name: "URLOption",
 						Type: di.TypeDefinition{Package: "url", Name: "URL"},
 					},
+					{
+						Name: "IntSlice",
+						Type: di.TypeDefinition{Name: "int", IsSlice: true},
+					},
+					{
+						Name: "StringMap",
+						Type: di.TypeDefinition{Name: "string", Key: &di.TypeDefinition{Name: "string"}},
+					},
 				},
 			},
 			assert: func(t *testing.T, files []*di.File) {

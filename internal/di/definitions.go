@@ -19,10 +19,13 @@ func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement 
 	return func(statement *jen.Statement) {
 		packageName := c.PackageName(definition)
 		if definition.IsPointer {
-			statement.Op("*").Qual(packageName, definition.Name)
-		} else {
-			statement.Qual(packageName, definition.Name)
+			statement = statement.Op("*")
+		} else if definition.IsSlice {
+			statement = statement.Op("[]")
+		} else if definition.IsMap() {
+			statement = statement.Map(jen.Id(definition.Key.Name))
 		}
+		statement.Qual(packageName, definition.Name)
 	}
 }
 
