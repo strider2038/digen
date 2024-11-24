@@ -1,0 +1,88 @@
+package di
+
+import (
+	"context"
+	internal "example.com/test/di/internal"
+	"sync"
+	"time"
+)
+
+type Container struct {
+	mu *sync.Mutex
+	c  *internal.Container
+}
+
+type Injector func(c *Container) error
+
+func NewContainer(injectors ...Injector) (*Container, error) {
+	c := &Container{
+		c:  internal.NewContainer(),
+		mu: &sync.Mutex{},
+	}
+
+	for _, inject := range injectors {
+		err := inject(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
+func (c *Container) StringOption(ctx context.Context) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.StringOption(ctx)
+	err := c.c.Error()
+
+	return s, err
+}
+
+func (c *Container) StringPointer(ctx context.Context) (*string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.StringPointer(ctx)
+	err := c.c.Error()
+
+	return s, err
+}
+
+func (c *Container) IntOption(ctx context.Context) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.IntOption(ctx)
+	err := c.c.Error()
+
+	return s, err
+}
+
+func (c *Container) TimeOption(ctx context.Context) (time.Time, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.TimeOption(ctx)
+	err := c.c.Error()
+
+	return s, err
+}
+
+func (c *Container) DurationOption(ctx context.Context) (time.Duration, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	s := c.c.DurationOption(ctx)
+	err := c.c.Error()
+
+	return s, err
+}
+
+func (c *Container) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.c.Close()
+}

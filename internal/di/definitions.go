@@ -27,13 +27,11 @@ func (c RootContainerDefinition) Type(definition TypeDefinition) func(statement 
 }
 
 func (c RootContainerDefinition) PackageName(definition TypeDefinition) string {
-	packageName := ""
 	if imp, ok := c.Imports[definition.Package]; ok {
-		// todo: check parsing to remove cutset
-		packageName = strings.Trim(imp.Path, `"`)
+		return imp.Path
 	}
 
-	return packageName
+	return ""
 }
 
 type ImportDefinition struct {
@@ -147,40 +145,6 @@ func (d TypeDefinition) String() string {
 	s.WriteString(d.Name)
 
 	return s.String()
-}
-
-func (d TypeDefinition) ZeroComparison() func(statement *jen.Statement) {
-	return func(statement *jen.Statement) {
-		switch {
-		case d.IsPointer:
-			statement.Op("==").Nil()
-		case d.IsBasicType():
-			d.basicZeroComparison(statement)
-		case d.IsTime():
-			statement.Dot("IsZero").Call()
-		case d.IsDuration():
-			statement.Op("==").Lit(0)
-		case d.IsURL():
-			statement.Op("==").New(jen.Qual("net/url", "URL"))
-		default:
-			statement.Op("==").Nil()
-		}
-	}
-}
-
-func (d TypeDefinition) basicZeroComparison(statement *jen.Statement) {
-	switch d.Name {
-	case "bool":
-		statement.Op("==").False()
-	case "string":
-		statement.Op("==").Lit("")
-	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
-		statement.Op("==").Lit(0)
-	case "float32", "float64":
-		statement.Op("==").Lit(0.0)
-	default:
-		statement.Op("==").Nil()
-	}
 }
 
 type FactoryFile struct {

@@ -50,17 +50,18 @@ func parseImportDefinition(spec *ast.ImportSpec) (*ImportDefinition, error) {
 	}
 
 	if spec.Path != nil {
-		definition.Path = spec.Path.Value
+		path, err := strconv.Unquote(spec.Path.Value)
+		if err != nil {
+			return nil, errors.Errorf("parse import path: %w", err)
+		}
+
+		definition.Path = path
 	}
 
 	if definition.Name != "" {
 		definition.ID = definition.Name
 	} else {
-		path, err := strconv.Unquote(definition.Path)
-		if err != nil {
-			return nil, errors.Errorf("parse import path: %w", err)
-		}
-		elements := strings.Split(path, "/")
+		elements := strings.Split(definition.Path, "/")
 		if len(elements) > 0 {
 			definition.ID = elements[len(elements)-1]
 		}

@@ -35,9 +35,7 @@ func (c *Container) SetError(err error) {
 func (c *Container) Connection(ctx context.Context) sql.Connection {
 	if !c.init.IsSet(0) && c.err == nil {
 		c.connection = factories.CreateConnection(ctx, c)
-		if c.err == nil {
-			c.init.Set(0)
-		}
+		c.init.Set(0)
 	}
 	return c.connection
 }

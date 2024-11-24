@@ -52,10 +52,10 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 
 	for _, service := range g.container.Services {
 		if service.IsPublic {
-			methods = append(methods, jen.Line(), g.generateGetter(service, nil))
+			methods = append(methods, jen.Line(), jen.Line(), g.generateGetter(service, nil))
 		}
 		if service.HasSetter {
-			methods = append(methods, jen.Line(), g.generateSetter(service, nil))
+			methods = append(methods, jen.Line(), jen.Line(), g.generateSetter(service, nil))
 		}
 		if service.IsRequired {
 			arguments = append(arguments, g.generateConstructorArgument(service))
@@ -88,9 +88,6 @@ func (g *PublicContainerGenerator) Generate() (*File, error) {
 	g.file.Add(g.generateConstructor(arguments, argumentSetters))
 	g.file.Add(methods...)
 	g.file.Add(jen.Line(), g.generateCloser())
-
-	// todo: remove
-	//fmt.Printf("%#v", g.file.file)
 
 	return g.file.GetFile()
 }
@@ -145,9 +142,6 @@ func (g *PublicContainerGenerator) generateGetter(service *ServiceDefinition, co
 			jen.Line(),
 			jen.Id("s").Op(":=").Id("c").Dot("c").Do(g.containerPath(container)).Dot(service.Title()).Call(jen.Id("ctx")),
 			jen.Id("err").Op(":=").Id("c").Dot("c").Dot("Error").Call(),
-			jen.If(jen.Id("err").Op("!=").Nil()).Block(
-				jen.Return(jen.Nil(), jen.Id("err")),
-			),
 			jen.Line(),
 			jen.Return(jen.Id("s"), jen.Err()),
 		)

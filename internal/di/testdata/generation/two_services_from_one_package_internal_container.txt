@@ -36,9 +36,7 @@ func (c *Container) SetError(err error) {
 func (c *Container) FirstService(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(0) && c.err == nil {
 		c.firstService = factories.CreateFirstService(ctx, c)
-		if c.err == nil {
-			c.init.Set(0)
-		}
+		c.init.Set(0)
 	}
 	return c.firstService
 }
@@ -46,9 +44,7 @@ func (c *Container) FirstService(ctx context.Context) *domain.Service {
 func (c *Container) SecondService(ctx context.Context) *domain.Service {
 	if !c.init.IsSet(1) && c.err == nil {
 		c.secondService = factories.CreateSecondService(ctx, c)
-		if c.err == nil {
-			c.init.Set(1)
-		}
+		c.init.Set(1)
 	}
 	return c.secondService
 }

@@ -21,8 +21,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain":      {Path: `"example.com/test/domain"`},
-					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -57,7 +56,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -89,7 +88,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -117,7 +116,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -144,7 +143,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"config": {Path: `"example.com/test/di/config"`},
+					"config": {Path: "example.com/test/di/config"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -170,29 +169,34 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"time": {Path: `"time"`},
-					"url":  {Path: `"net/url"`},
+					"time": {Path: "time"},
+					"url":  {Path: "net/url"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
-						Name: "StringOption",
-						Type: di.TypeDefinition{Name: "string"},
+						Name:     "StringOption",
+						Type:     di.TypeDefinition{Name: "string"},
+						IsPublic: true,
 					},
 					{
-						Name: "StringPointer",
-						Type: di.TypeDefinition{IsPointer: true, Name: "string"},
+						Name:     "StringPointer",
+						Type:     di.TypeDefinition{IsPointer: true, Name: "string"},
+						IsPublic: true,
 					},
 					{
-						Name: "IntOption",
-						Type: di.TypeDefinition{Name: "int"},
+						Name:     "IntOption",
+						Type:     di.TypeDefinition{Name: "int"},
+						IsPublic: true,
 					},
 					{
-						Name: "TimeOption",
-						Type: di.TypeDefinition{Package: "time", Name: "Time"},
+						Name:     "TimeOption",
+						Type:     di.TypeDefinition{Package: "time", Name: "Time"},
+						IsPublic: true,
 					},
 					{
-						Name: "DurationOption",
-						Type: di.TypeDefinition{Package: "time", Name: "Duration"},
+						Name:     "DurationOption",
+						Type:     di.TypeDefinition{Package: "time", Name: "Duration"},
+						IsPublic: true,
 					},
 					{
 						Name: "URLOption",
@@ -204,8 +208,8 @@ func TestGenerate(t *testing.T) {
 				t.Helper()
 
 				require.GreaterOrEqual(t, len(files), 1)
-				got := string(files[0].Content)
-				assert.Equal(t, singleContainerWithBasicTypes, got)
+				assert.Equal(t, singleContainerWithBasicTypes, string(files[0].Content))
+				assert.Equal(t, singleContainerWithBasicTypesPublicContainer, string(files[2].Content))
 			},
 		},
 		{
@@ -214,7 +218,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"sql": {Path: `"example.com/test/sql"`},
+					"sql": {Path: "example.com/test/sql"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -241,7 +245,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -277,7 +281,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"domain": {Path: `"example.com/test/domain"`},
+					"domain": {Path: "example.com/test/domain"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -347,7 +351,7 @@ func TestGenerate(t *testing.T) {
 			container: &di.RootContainerDefinition{
 				Name: "Container",
 				Imports: map[string]*di.ImportDefinition{
-					"httpadapter": {Name: "httpadapter", Path: `"example.com/test/infrastructure/api/http"`},
+					"httpadapter": {Name: "httpadapter", Path: "example.com/test/infrastructure/api/http"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -396,18 +400,7 @@ func TestGenerate(t *testing.T) {
 				require.GreaterOrEqual(t, len(files), 3)
 				assert.Contains(
 					t, string(files[2].Content),
-					`func (c *Container) APIRouter(ctx context.Context) (http.Handler, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	s := c.c.Router(ctx)
-	err := c.c.Error()
-	if err != nil {
-		return nil, err
-	}
-
-	return s, err
-}`,
+					`func (c *Container) APIRouter(ctx context.Context) (http.Handler, error) {`,
 				)
 			},
 		},
@@ -456,6 +449,8 @@ var (
 
 	//go:embed testdata/generation/single_container_with_basic_types.txt
 	singleContainerWithBasicTypes string
+	//go:embed testdata/generation/single_container_with_basic_types_public_container.txt
+	singleContainerWithBasicTypesPublicContainer string
 
 	//go:embed testdata/generation/single_container_with_external_service_internal_container.txt
 	singleContainerWithExternalServiceInternalContainer string

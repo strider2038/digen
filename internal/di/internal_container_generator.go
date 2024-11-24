@@ -31,9 +31,6 @@ func (g *InternalContainerGenerator) Generate() (*File, error) {
 	g.generateSetters()
 	g.generateClosers()
 
-	// todo: remove
-	//fmt.Printf("%#v", g.file.file)
-
 	return g.file.GetFile()
 }
 
@@ -177,9 +174,7 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
 				Qual(g.params.packageName(FactoriesPackage), "Create"+strings.Title(service.Prefix)+service.Title()).
 				Call(jen.Id("ctx"), jen.Id("c")),
-			jen.If(jen.Id("c").Dot("err").Op("==").Nil()).Block(
-				jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
-			),
+			jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
 		)
 }
 

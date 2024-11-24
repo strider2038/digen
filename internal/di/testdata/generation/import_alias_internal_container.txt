@@ -35,9 +35,7 @@ func (c *Container) SetError(err error) {
 func (c *Container) ServiceName(ctx context.Context) *httpadapter.ServiceHandler {
 	if !c.init.IsSet(0) && c.err == nil {
 		c.serviceName = factories.CreateServiceName(ctx, c)
-		if c.err == nil {
-			c.init.Set(0)
-		}
+		c.init.Set(0)
 	}
 	return c.serviceName
 }

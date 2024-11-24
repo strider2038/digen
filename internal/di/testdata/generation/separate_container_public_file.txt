@@ -38,9 +38,6 @@ func (c *Container) FirstService(ctx context.Context) (*domain.Service, error) {
 
 	s := c.c.InternalContainerName().(*internal.InternalContainerType).FirstService(ctx)
 	err := c.c.Error()
-	if err != nil {
-		return nil, err
-	}
 
 	return s, err
 }

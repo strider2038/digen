@@ -36,9 +36,6 @@ func (c *Container) ServiceName(ctx context.Context) (*httpadapter.ServiceHandle
 
 	s := c.c.ServiceName(ctx)
 	err := c.c.Error()
-	if err != nil {
-		return nil, err
-	}
 
 	return s, err
 }

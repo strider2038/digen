@@ -75,25 +75,25 @@ func assertExpectedContainerImports(t *testing.T, imports map[string]*di.ImportD
 	if assert.NotNil(t, imports["usecase"]) {
 		assert.Equal(t, "usecase", imports["usecase"].ID)
 		assert.Equal(t, "", imports["usecase"].Name)
-		assert.Equal(t, `"example.com/test/application/usecase"`, imports["usecase"].Path)
+		assert.Equal(t, "example.com/test/application/usecase", imports["usecase"].Path)
 	}
 
 	if assert.NotNil(t, imports["domain"]) {
 		assert.Equal(t, "domain", imports["domain"].ID)
 		assert.Equal(t, "", imports["domain"].Name)
-		assert.Equal(t, `"example.com/test/domain"`, imports["domain"].Path)
+		assert.Equal(t, "example.com/test/domain", imports["domain"].Path)
 	}
 
 	if assert.NotNil(t, imports["config"]) {
 		assert.Equal(t, "config", imports["config"].ID)
 		assert.Equal(t, "", imports["config"].Name)
-		assert.Equal(t, `"example.com/test/di/config"`, imports["config"].Path)
+		assert.Equal(t, "example.com/test/di/config", imports["config"].Path)
 	}
 
 	if assert.NotNil(t, imports["httpadapter"]) {
 		assert.Equal(t, "httpadapter", imports["httpadapter"].ID)
 		assert.Equal(t, "httpadapter", imports["httpadapter"].Name)
-		assert.Equal(t, `"example.com/test/infrastructure/api/http"`, imports["httpadapter"].Path)
+		assert.Equal(t, "example.com/test/infrastructure/api/http", imports["httpadapter"].Path)
 	}
 }
 
@@ -172,7 +172,6 @@ func assertExpectedBasicTypes(t *testing.T, services []*di.ServiceDefinition) {
 	assert.Equal(t, "int", services[1].Type.Name)
 
 	assert.Equal(t, "DurationOption", services[2].Name)
-	assert.True(t, services[2].Type.IsDuration())
 	assert.False(t, services[2].Type.IsPointer)
 	assert.Equal(t, "time", services[2].Type.Package)
 	assert.Equal(t, "Duration", services[2].Type.Name)
