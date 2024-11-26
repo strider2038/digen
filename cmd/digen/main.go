@@ -16,7 +16,9 @@ var (
 func main() {
 	if version == "" {
 		version = versioninfo.Short()
-		date = versioninfo.LastCommit.String()
+		if !versioninfo.LastCommit.IsZero() {
+			date = versioninfo.LastCommit.String()
+		}
 	}
 	err := app.Execute(
 		app.SetVersion(version),
