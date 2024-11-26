@@ -1,5 +1,7 @@
 package app
 
+import "fmt"
+
 type Options struct {
 	Version   string
 	BuildTime string
@@ -18,4 +20,13 @@ func SetBuildTime(buildTime string) OptionFunc {
 	return func(options *Options) {
 		options.BuildTime = buildTime
 	}
+}
+
+func (options *Options) description() string {
+	buildAt := ""
+	if options.BuildTime != "" {
+		buildAt = " Build at " + options.BuildTime + "."
+	}
+
+	return fmt.Sprintf("DIGEN. Dependency Injection Container Generator.\nVersion %s.%s\n", options.Version, buildAt)
 }

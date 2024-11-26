@@ -53,7 +53,7 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 	constructorBlocks := make([]jen.Code, 0, 2+len(g.container.Containers))
 	constructorBlocks = append(constructorBlocks,
 		jen.Id("c").Op(":=").Op("&").Id("Container").Op("{}"),
-		jen.Id("c").Dot("init").Op("=").Make(jen.Id("bitset"), jen.Lit(len(g.container.Services)/64+1)),
+		jen.Id("c").Dot("init").Op("=").Make(jen.Id("bitset"), jen.Lit(g.container.ServicesCount()/64+1)),
 	)
 
 	for _, container := range g.container.Containers {

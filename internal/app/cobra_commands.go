@@ -6,14 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const descriptionTemplate = `DIGEN. Dependency Injection Container Generator.
-Version %s. Build at %s.`
-
 func newMainCommand(opts *Options) *cobra.Command {
 	command := &cobra.Command{
 		Use:   "digen",
 		Short: "Dependency Injection Container Generator",
-		Long:  fmt.Sprintf(descriptionTemplate, opts.Version, opts.BuildTime),
+		Long:  opts.description(),
 	}
 
 	command.PersistentFlags().BoolVar(
@@ -37,7 +34,7 @@ func newVersionCommand(options *Options) *cobra.Command {
 		Use:   "version",
 		Short: "Prints application version",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("DIGEN. Dependency Injection Container Generator.\nVersion %s. Build at %s.\n", options.Version, options.BuildTime)
+			fmt.Printf(options.description())
 		},
 	}
 }

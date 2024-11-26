@@ -110,6 +110,7 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [x] ability to choose specific file for factory func
 * [x] ability to set public definition name
 * [x] check app version in config
+* [x] force variable name / package name uniqueness
 * [ ] custom close functions
 * [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository
@@ -117,4 +118,3 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
 * [ ] write doc
-* [ ] force variable name / package name uniqueness

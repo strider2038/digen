@@ -25,7 +25,7 @@ type Container struct {
 type ErrorHandling struct {
 	Package      string `json:"package" yaml:"package"`
 	WrapPackage  string `json:"wrapPackage" yaml:"wrapPackage"`
-	WrapFunction string `json:"function" yaml:"function"`
+	WrapFunction string `json:"wrapFunction" yaml:"wrapFunction"`
 	Verb         string `json:"verb" yaml:"verb"`
 }
 

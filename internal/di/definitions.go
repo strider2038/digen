@@ -38,6 +38,16 @@ func (c RootContainerDefinition) PackageName(definition TypeDefinition) string {
 	return ""
 }
 
+func (c RootContainerDefinition) ServicesCount() int {
+	count := len(c.Services)
+
+	for _, container := range c.Containers {
+		count += len(container.Services)
+	}
+
+	return count
+}
+
 type ImportDefinition struct {
 	ID   string
 	Name string
