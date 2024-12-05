@@ -226,11 +226,6 @@ func (g *PublicContainerGenerator) containerPath(container *ContainerDefinition)
 }
 
 func (g *PublicContainerGenerator) generateErrorHandler() []jen.Code {
-	errPackage := g.params.ErrorHandling.Package
-	wrapPackage := g.params.ErrorHandling.WrapPackage
-	errFunc := g.params.ErrorHandling.WrapFunction
-	errVerb := g.params.ErrorHandling.Verb
-
 	return []jen.Code{
 		jen.Line(),
 		jen.Func().Id("newRecoveredError").
@@ -240,18 +235,15 @@ func (g *PublicContainerGenerator) generateErrorHandler() []jen.Code {
 			).
 			Error().
 			Block(
-				jen.Id("r").Op(":=").Qual(wrapPackage, errFunc).Call(
+				jen.Id("r").Op(":=").Qual(g.params.ErrorHandling.Wrap.Package, g.params.ErrorHandling.Wrap.Function).Call(
 					jen.Lit("panic: %v"),
 					jen.Id("recovered"),
 				),
 				jen.If(jen.Err().Op("!=").Nil()).Block(
 					jen.Return(
-						jen.Qual(errPackage, "Join").Call(
+						g.params.joinErrors(
 							jen.Id("r"),
-							jen.Qual(wrapPackage, errFunc).Call(
-								jen.Lit("previous error: "+errVerb),
-								jen.Err(),
-							),
+							g.params.wrapError("previous error", jen.Err()),
 						),
 					),
 				),

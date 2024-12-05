@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	factories "example.com/test/di/internal/factories"
 	"fmt"
 	"net/url"
@@ -9,7 +10,7 @@ import (
 )
 
 type Container struct {
-	err  error
+	errs []error
 	init bitset
 
 	stringOption   string
@@ -31,22 +32,27 @@ func NewContainer() *Container {
 
 // Error returns the first initialization error, which can be set via SetError in a service definition.
 func (c *Container) Error() error {
-	return c.err
+	return errors.Join(c.errs...)
 }
 
 // SetError sets the first error into container. The error is used in the public container to return an initialization error.
+// Deprecated. Return error in factory instead.
 func (c *Container) SetError(err error) {
-	if err != nil && c.err == nil {
-		c.err = err
+	c.addError(err)
+}
+
+func (c *Container) addError(err error) {
+	if err != nil {
+		c.errs = append(c.errs, err)
 	}
 }
 
 func (c *Container) StringOption(ctx context.Context) string {
-	if !c.init.IsSet(0) && c.err == nil {
+	if !c.init.IsSet(0) && c.errs == nil {
 		var err error
 		c.stringOption, err = factories.CreateStringOption(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create StringOption: %w", err))
+			c.addError(fmt.Errorf("create StringOption: %w", err))
 		}
 		c.init.Set(0)
 	}
@@ -54,11 +60,11 @@ func (c *Container) StringOption(ctx context.Context) string {
 }
 
 func (c *Container) StringPointer(ctx context.Context) *string {
-	if !c.init.IsSet(1) && c.err == nil {
+	if !c.init.IsSet(1) && c.errs == nil {
 		var err error
 		c.stringPointer, err = factories.CreateStringPointer(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create StringPointer: %w", err))
+			c.addError(fmt.Errorf("create StringPointer: %w", err))
 		}
 		c.init.Set(1)
 	}
@@ -66,11 +72,11 @@ func (c *Container) StringPointer(ctx context.Context) *string {
 }
 
 func (c *Container) IntOption(ctx context.Context) int {
-	if !c.init.IsSet(2) && c.err == nil {
+	if !c.init.IsSet(2) && c.errs == nil {
 		var err error
 		c.intOption, err = factories.CreateIntOption(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create IntOption: %w", err))
+			c.addError(fmt.Errorf("create IntOption: %w", err))
 		}
 		c.init.Set(2)
 	}
@@ -78,11 +84,11 @@ func (c *Container) IntOption(ctx context.Context) int {
 }
 
 func (c *Container) TimeOption(ctx context.Context) time.Time {
-	if !c.init.IsSet(3) && c.err == nil {
+	if !c.init.IsSet(3) && c.errs == nil {
 		var err error
 		c.timeOption, err = factories.CreateTimeOption(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create TimeOption: %w", err))
+			c.addError(fmt.Errorf("create TimeOption: %w", err))
 		}
 		c.init.Set(3)
 	}
@@ -90,11 +96,11 @@ func (c *Container) TimeOption(ctx context.Context) time.Time {
 }
 
 func (c *Container) DurationOption(ctx context.Context) time.Duration {
-	if !c.init.IsSet(4) && c.err == nil {
+	if !c.init.IsSet(4) && c.errs == nil {
 		var err error
 		c.durationOption, err = factories.CreateDurationOption(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create DurationOption: %w", err))
+			c.addError(fmt.Errorf("create DurationOption: %w", err))
 		}
 		c.init.Set(4)
 	}
@@ -102,11 +108,11 @@ func (c *Container) DurationOption(ctx context.Context) time.Duration {
 }
 
 func (c *Container) URLOption(ctx context.Context) url.URL {
-	if !c.init.IsSet(5) && c.err == nil {
+	if !c.init.IsSet(5) && c.errs == nil {
 		var err error
 		c.urloption, err = factories.CreateURLOption(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create URLOption: %w", err))
+			c.addError(fmt.Errorf("create URLOption: %w", err))
 		}
 		c.init.Set(5)
 	}
@@ -114,11 +120,11 @@ func (c *Container) URLOption(ctx context.Context) url.URL {
 }
 
 func (c *Container) IntSlice(ctx context.Context) []int {
-	if !c.init.IsSet(6) && c.err == nil {
+	if !c.init.IsSet(6) && c.errs == nil {
 		var err error
 		c.intSlice, err = factories.CreateIntSlice(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create IntSlice: %w", err))
+			c.addError(fmt.Errorf("create IntSlice: %w", err))
 		}
 		c.init.Set(6)
 	}
@@ -126,11 +132,11 @@ func (c *Container) IntSlice(ctx context.Context) []int {
 }
 
 func (c *Container) StringMap(ctx context.Context) map[string]string {
-	if !c.init.IsSet(7) && c.err == nil {
+	if !c.init.IsSet(7) && c.errs == nil {
 		var err error
 		c.stringMap, err = factories.CreateStringMap(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create StringMap: %w", err))
+			c.addError(fmt.Errorf("create StringMap: %w", err))
 		}
 		c.init.Set(7)
 	}

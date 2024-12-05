@@ -1,0 +1,14 @@
+package lookup
+
+import (
+	"context"
+	config "example.com/test/di/config"
+)
+
+type Container interface {
+	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+	// Deprecated. Return error in factory instead.
+	SetError(err error)
+
+	Configuration(ctx context.Context) config.Configuration
+}

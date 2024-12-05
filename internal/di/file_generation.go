@@ -22,24 +22,38 @@ type GenerationParameters struct {
 }
 
 type ErrorHandling struct {
-	Package      string
-	WrapPackage  string
-	WrapFunction string
-	Verb         string
+	New  ErrorOptions
+	Join ErrorOptions
+	Wrap ErrorOptions
+}
+
+type ErrorOptions struct {
+	Package  string
+	Function string
+	Verb     string
 }
 
 func (w ErrorHandling) Defaults() ErrorHandling {
-	if w.Package == "" {
-		w.Package = "errors"
+	if w.New.Package == "" {
+		w.New.Package = "fmt"
 	}
-	if w.WrapPackage == "" {
-		w.WrapPackage = "fmt"
+	if w.New.Function == "" {
+		w.New.Function = "Errorf"
 	}
-	if w.WrapFunction == "" {
-		w.WrapFunction = "Errorf"
+	if w.Join.Package == "" {
+		w.Join.Package = "errors"
 	}
-	if w.Verb == "" {
-		w.Verb = "%w"
+	if w.Join.Function == "" {
+		w.Join.Function = "Join"
+	}
+	if w.Wrap.Package == "" {
+		w.Wrap.Package = "fmt"
+	}
+	if w.Wrap.Function == "" {
+		w.Wrap.Function = "Errorf"
+	}
+	if w.Wrap.Verb == "" {
+		w.Wrap.Verb = "%w"
 	}
 
 	return w
@@ -58,11 +72,28 @@ func (params *GenerationParameters) packageName(packageType PackageType) string 
 }
 
 func (params *GenerationParameters) wrapError(message string, errorIdentifier jen.Code) *jen.Statement {
-	path := params.ErrorHandling.WrapPackage
-	funcName := params.ErrorHandling.WrapFunction
-	verb := params.ErrorHandling.Verb
+	path := params.ErrorHandling.Wrap.Package
+	funcName := params.ErrorHandling.Wrap.Function
+	verb := params.ErrorHandling.Wrap.Verb
 
 	return jen.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
+}
+
+func (params *GenerationParameters) doWrapError(message string, errorIdentifier jen.Code) func(statement *jen.Statement) {
+	return func(statement *jen.Statement) {
+		path := params.ErrorHandling.Wrap.Package
+		funcName := params.ErrorHandling.Wrap.Function
+		verb := params.ErrorHandling.Wrap.Verb
+
+		statement.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
+	}
+}
+
+func (params *GenerationParameters) joinErrors(errs ...jen.Code) *jen.Statement {
+	path := params.ErrorHandling.Join.Package
+	funcName := params.ErrorHandling.Join.Function
+
+	return jen.Qual(path, funcName).Call(errs...)
 }
 
 func GenerateFiles(container *RootContainerDefinition, params GenerationParameters) ([]*File, error) {

@@ -2,11 +2,14 @@ package internal
 
 import (
 	"context"
+	"errors"
+	factories "example.com/test/di/internal/factories"
 	domain "example.com/test/domain"
+	"fmt"
 )
 
 type Container struct {
-	err  error
+	errs []error
 	init bitset
 
 	serviceName *domain.Service
@@ -21,17 +24,30 @@ func NewContainer() *Container {
 
 // Error returns the first initialization error, which can be set via SetError in a service definition.
 func (c *Container) Error() error {
-	return c.err
+	return errors.Join(c.errs...)
 }
 
 // SetError sets the first error into container. The error is used in the public container to return an initialization error.
+// Deprecated. Return error in factory instead.
 func (c *Container) SetError(err error) {
-	if err != nil && c.err == nil {
-		c.err = err
+	c.addError(err)
+}
+
+func (c *Container) addError(err error) {
+	if err != nil {
+		c.errs = append(c.errs, err)
 	}
 }
 
 func (c *Container) ServiceName(ctx context.Context) *domain.Service {
+	if !c.init.IsSet(0) && c.errs == nil {
+		var err error
+		c.serviceName, err = factories.CreateServiceName(ctx, c)
+		if err != nil {
+			c.addError(fmt.Errorf("create ServiceName: %w", err))
+		}
+		c.init.Set(0)
+	}
 	return c.serviceName
 }
 

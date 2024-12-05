@@ -2,12 +2,13 @@ package lookup
 
 import (
 	"context"
-	domain "example.com/test/domain"
+	"net/http"
 )
 
 type Container interface {
 	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+	// Deprecated. Return error in factory instead.
 	SetError(err error)
 
-	ServiceName(ctx context.Context) *domain.Service
+	Router(ctx context.Context) http.Handler
 }

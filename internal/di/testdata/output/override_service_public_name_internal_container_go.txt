@@ -2,16 +2,17 @@ package internal
 
 import (
 	"context"
+	"errors"
 	factories "example.com/test/di/internal/factories"
-	sql "example.com/test/sql"
 	"fmt"
+	"net/http"
 )
 
 type Container struct {
-	err  error
+	errs []error
 	init bitset
 
-	connection sql.Connection
+	router http.Handler
 }
 
 func NewContainer() *Container {
@@ -23,30 +24,31 @@ func NewContainer() *Container {
 
 // Error returns the first initialization error, which can be set via SetError in a service definition.
 func (c *Container) Error() error {
-	return c.err
+	return errors.Join(c.errs...)
 }
 
 // SetError sets the first error into container. The error is used in the public container to return an initialization error.
+// Deprecated. Return error in factory instead.
 func (c *Container) SetError(err error) {
-	if err != nil && c.err == nil {
-		c.err = err
+	c.addError(err)
+}
+
+func (c *Container) addError(err error) {
+	if err != nil {
+		c.errs = append(c.errs, err)
 	}
 }
 
-func (c *Container) Connection(ctx context.Context) sql.Connection {
-	if !c.init.IsSet(0) && c.err == nil {
+func (c *Container) Router(ctx context.Context) http.Handler {
+	if !c.init.IsSet(0) && c.errs == nil {
 		var err error
-		c.connection, err = factories.CreateConnection(ctx, c)
+		c.router, err = factories.CreateRouter(ctx, c)
 		if err != nil {
-			c.SetError(fmt.Errorf("create Connection: %w", err))
+			c.addError(fmt.Errorf("create Router: %w", err))
 		}
 		c.init.Set(0)
 	}
-	return c.connection
+	return c.router
 }
 
-func (c *Container) Close() {
-	if c.init.IsSet(0) {
-		c.connection.Close()
-	}
-}
+func (c *Container) Close() {}

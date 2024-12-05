@@ -1,0 +1,39 @@
+package di
+
+import (
+	config "example.com/test/di/config"
+	internal "example.com/test/di/internal"
+	"sync"
+)
+
+type Container struct {
+	mu *sync.Mutex
+	c  *internal.Container
+}
+
+type Injector func(c *Container) error
+
+func NewContainer(configuration config.Configuration, injectors ...Injector) (*Container, error) {
+	c := &Container{
+		c:  internal.NewContainer(),
+		mu: &sync.Mutex{},
+	}
+
+	c.c.SetConfiguration(configuration)
+
+	for _, inject := range injectors {
+		err := inject(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
+func (c *Container) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.c.Close()
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/muonsoft/errors"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
+	"github.com/strider2038/digen/internal/di"
 )
 
 var errInvalidPath = errors.New("invalid path")
@@ -23,10 +24,43 @@ type Container struct {
 }
 
 type ErrorHandling struct {
-	Package      string `json:"package" yaml:"package"`
-	WrapPackage  string `json:"wrapPackage" yaml:"wrapPackage"`
-	WrapFunction string `json:"wrapFunction" yaml:"wrapFunction"`
-	Verb         string `json:"verb" yaml:"verb"`
+	New  ErrorOptions     `json:"new" yaml:"new"`
+	Join ErrorOptions     `json:"join" yaml:"join"`
+	Wrap WrapErrorOptions `json:"wrap" yaml:"wrap"`
+}
+
+func (h ErrorHandling) MapToOptions() di.ErrorHandling {
+	return di.ErrorHandling{
+		New:  h.New.mapToOptions(),
+		Join: h.Join.mapToOptions(),
+		Wrap: h.Wrap.mapToOptions(),
+	}
+}
+
+type ErrorOptions struct {
+	Pkg  string `json:"pkg" yaml:"pkg"`
+	Func string `json:"func" yaml:"func"`
+}
+
+func (o ErrorOptions) mapToOptions() di.ErrorOptions {
+	return di.ErrorOptions{
+		Package:  o.Pkg,
+		Function: o.Func,
+	}
+}
+
+type WrapErrorOptions struct {
+	Pkg  string `json:"pkg" yaml:"pkg"`
+	Func string `json:"func" yaml:"func"`
+	Verb string `json:"verb" yaml:"verb"`
+}
+
+func (o WrapErrorOptions) mapToOptions() di.ErrorOptions {
+	return di.ErrorOptions{
+		Package:  o.Pkg,
+		Function: o.Func,
+		Verb:     o.Verb,
+	}
 }
 
 func Load() (*Parameters, error) {

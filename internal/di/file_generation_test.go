@@ -2,8 +2,12 @@ package di_test
 
 import (
 	_ "embed"
+	"os"
+	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/iancoleman/strcase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/strider2038/digen/internal/di"
@@ -13,7 +17,6 @@ func TestGenerate(t *testing.T) {
 	tests := []struct {
 		name      string
 		container *di.RootContainerDefinition
-		assert    func(t *testing.T, files []*di.File)
 	}{
 		{
 			name: "single container with getters only",
@@ -34,20 +37,6 @@ func TestGenerate(t *testing.T) {
 						IsPublic: true,
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.Len(t, files, 3)
-				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, "container.go", files[0].Name)
-				assert.Equal(t, singleContainerWithGettersOnlyInternalContainer, string(files[0].Content))
-				assert.Equal(t, di.LookupPackage, files[1].Package)
-				assert.Equal(t, "container.go", files[1].Name)
-				assert.Equal(t, singleContainerWithGettersOnlyDefinitionContracts, string(files[1].Content))
-				assert.Equal(t, di.PublicPackage, files[2].Package)
-				assert.Equal(t, "container.go", files[2].Name)
-				assert.Equal(t, singleContainerWithGettersOnlyPublicFile, string(files[2].Content))
 			},
 		},
 		{
@@ -70,17 +59,6 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 3)
-				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, "container.go", files[0].Name)
-				assert.Equal(t, singleContainerWithServiceSetterInternalContainer, string(files[0].Content))
-				assert.Equal(t, di.PublicPackage, files[2].Package)
-				assert.Equal(t, "container.go", files[2].Name)
-				assert.Equal(t, singleContainerWithServiceSetterPublicContainer, string(files[2].Content))
-			},
 		},
 		{
 			name: "single container with required service",
@@ -101,13 +79,6 @@ func TestGenerate(t *testing.T) {
 						IsRequired: true,
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 3)
-				assert.Equal(t, singleContainerWithRequiredServiceInternalContainer, string(files[0].Content))
-				assert.Equal(t, publicContainerWithRequirementFile, string(files[2].Content))
 			},
 		},
 		{
@@ -130,12 +101,6 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 1)
-				assert.Equal(t, singleContainerWithExternalServiceInternalContainer, string(files[0].Content))
-			},
 		},
 		{
 			name: "single container with static type",
@@ -155,12 +120,6 @@ func TestGenerate(t *testing.T) {
 						IsRequired: true,
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 1)
-				assert.Equal(t, singleContainerWithStaticTypeInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -212,13 +171,6 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 1)
-				assert.Equal(t, singleContainerWithBasicTypes, string(files[0].Content))
-				assert.Equal(t, singleContainerWithBasicTypesPublicContainer, string(files[2].Content))
-			},
 		},
 		{
 			name: "single container with closer",
@@ -238,13 +190,6 @@ func TestGenerate(t *testing.T) {
 						HasCloser: true,
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.Greater(t, len(files), 1)
-				assert.Equal(t, di.InternalPackage, files[0].Package)
-				assert.Equal(t, singleContainerWithCloserInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -275,12 +220,6 @@ func TestGenerate(t *testing.T) {
 						IsPublic: true,
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.Greater(t, len(files), 1)
-				assert.Equal(t, twoServicesFromOnePackageInternalContainer, string(files[0].Content))
 			},
 		},
 		{
@@ -345,14 +284,6 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 3)
-				assert.Equal(t, separateContainerInternalContainer, string(files[0].Content))
-				assert.Equal(t, separateLookupContainerFile, string(files[1].Content))
-				assert.Equal(t, separateContainerPublicFile, string(files[2].Content))
-			},
 		},
 		{
 			name: "import alias generation check",
@@ -373,14 +304,6 @@ func TestGenerate(t *testing.T) {
 					},
 				},
 			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.Len(t, files, 3)
-				assert.Equal(t, importAliasInternalContainer, string(files[0].Content))
-				assert.Equal(t, importAliasLookupContainer, string(files[1].Content))
-				assert.Equal(t, importAliasPublicContainer, string(files[2].Content))
-			},
 		},
 		{
 			name: "override service public name",
@@ -388,7 +311,7 @@ func TestGenerate(t *testing.T) {
 				Name:    "Container",
 				Package: "testpkg",
 				Imports: map[string]*di.ImportDefinition{
-					"http": {Path: `"net/http"`},
+					"http": {Path: "net/http"},
 				},
 				Services: []*di.ServiceDefinition{
 					{
@@ -401,15 +324,6 @@ func TestGenerate(t *testing.T) {
 						},
 					},
 				},
-			},
-			assert: func(t *testing.T, files []*di.File) {
-				t.Helper()
-
-				require.GreaterOrEqual(t, len(files), 3)
-				assert.Contains(
-					t, string(files[2].Content),
-					`func (c *Container) APIRouter(ctx context.Context) (s http.Handler, err error) {`,
-				)
 			},
 		},
 	}
@@ -432,58 +346,44 @@ func TestGenerate(t *testing.T) {
 				ErrorHandling: di.ErrorHandling{}.Defaults(),
 			})
 
+			if needToDump() {
+				dumpFiles(t, test.name, files)
+			}
 			require.NoError(t, err)
-			test.assert(t, files)
+			assertFiles(t, test.name, files)
 		})
 	}
 }
 
-var (
-	//go:embed testdata/generation/single_container_with_getters_only_internal_container.txt
-	singleContainerWithGettersOnlyInternalContainer string
-	//go:embed testdata/generation/single_container_with_getters_only_definition_contracts.txt
-	singleContainerWithGettersOnlyDefinitionContracts string
-	//go:embed testdata/generation/single_container_with_getters_only_public_file.txt
-	singleContainerWithGettersOnlyPublicFile string
+func assertFiles(tb testing.TB, testCase string, files []*di.File) {
+	for _, file := range files {
+		filename := formatFilename(testCase, file)
+		content, err := os.ReadFile(filename)
+		if err != nil {
+			tb.Fatal("read file: ", err)
+		}
 
-	//go:embed testdata/generation/single_container_with_service_setter_internal_container.txt
-	singleContainerWithServiceSetterInternalContainer string
-	//go:embed testdata/generation/single_container_with_service_setter_public_container.txt
-	singleContainerWithServiceSetterPublicContainer string
+		assert.Equal(tb, string(content), string(file.Content))
+	}
+}
 
-	//go:embed testdata/generation/single_container_with_required_service_internal_container.txt
-	singleContainerWithRequiredServiceInternalContainer string
-	//go:embed testdata/generation/public_container_with_requirement_file.txt
-	publicContainerWithRequirementFile string
+func formatFilename(testCase string, file *di.File) string {
+	path := strings.ReplaceAll(file.Path(), "/", "_")
 
-	//go:embed testdata/generation/single_container_with_basic_types.txt
-	singleContainerWithBasicTypes string
-	//go:embed testdata/generation/single_container_with_basic_types_public_container.txt
-	singleContainerWithBasicTypesPublicContainer string
+	return "./testdata/output/" + strcase.ToSnake(testCase+"_"+path) + ".txt"
+}
 
-	//go:embed testdata/generation/single_container_with_external_service_internal_container.txt
-	singleContainerWithExternalServiceInternalContainer string
+func needToDump() bool {
+	v, _ := strconv.ParseBool(os.Getenv("DUMP"))
 
-	//go:embed testdata/generation/single_container_with_static_type_internal_container.txt
-	singleContainerWithStaticTypeInternalContainer string
+	return v
+}
 
-	//go:embed testdata/generation/single_container_with_closer_internal_container.txt
-	singleContainerWithCloserInternalContainer string
-
-	//go:embed testdata/generation/two_services_from_one_package_internal_container.txt
-	twoServicesFromOnePackageInternalContainer string
-
-	//go:embed testdata/generation/separate_container_internal_container.txt
-	separateContainerInternalContainer string
-	//go:embed testdata/generation/separate_lookup_container_file.txt
-	separateLookupContainerFile string
-	//go:embed testdata/generation/separate_container_public_file.txt
-	separateContainerPublicFile string
-
-	//go:embed testdata/generation/import_alias_internal_container.txt
-	importAliasInternalContainer string
-	//go:embed testdata/generation/import_alias_lookup_container.txt
-	importAliasLookupContainer string
-	//go:embed testdata/generation/import_alias_public_container.txt
-	importAliasPublicContainer string
-)
+func dumpFiles(tb testing.TB, testCase string, files []*di.File) {
+	for _, file := range files {
+		filename := formatFilename(testCase, file)
+		if err := os.WriteFile(filename, file.Content, 0644); err != nil {
+			tb.Fatal("write file: ", err)
+		}
+	}
+}

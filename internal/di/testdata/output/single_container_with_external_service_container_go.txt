@@ -1,0 +1,36 @@
+package di
+
+import (
+	internal "example.com/test/di/internal"
+	"sync"
+)
+
+type Container struct {
+	mu *sync.Mutex
+	c  *internal.Container
+}
+
+type Injector func(c *Container) error
+
+func NewContainer(injectors ...Injector) (*Container, error) {
+	c := &Container{
+		c:  internal.NewContainer(),
+		mu: &sync.Mutex{},
+	}
+
+	for _, inject := range injectors {
+		err := inject(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
+func (c *Container) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.c.Close()
+}

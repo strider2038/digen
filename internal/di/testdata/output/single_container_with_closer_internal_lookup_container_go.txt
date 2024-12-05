@@ -1,0 +1,14 @@
+package lookup
+
+import (
+	"context"
+	sql "example.com/test/sql"
+)
+
+type Container interface {
+	// SetError sets the first error into container. The error is used in the public container to return an initialization error.
+	// Deprecated. Return error in factory instead.
+	SetError(err error)
+
+	Connection(ctx context.Context) sql.Connection
+}

@@ -18,7 +18,7 @@ type Generator struct {
 	BaseDir       string
 	ModulePath    string
 	Logger        Logger
-	ErrorWrapping ErrorHandling
+	ErrorHandling ErrorHandling
 
 	Version   string
 	BuildTime string
@@ -115,7 +115,7 @@ func (g *Generator) init() error {
 func (g *Generator) generateContainerFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
 		RootPackage:   g.RootPackage(),
-		ErrorHandling: g.ErrorWrapping.Defaults(),
+		ErrorHandling: g.ErrorHandling.Defaults(),
 	}
 
 	files, err := GenerateFiles(container, params)
@@ -144,7 +144,7 @@ func (g *Generator) generateContainerFiles(container *RootContainerDefinition) e
 func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) error {
 	params := GenerationParameters{
 		RootPackage:   g.RootPackage(),
-		ErrorHandling: g.ErrorWrapping.Defaults(),
+		ErrorHandling: g.ErrorHandling.Defaults(),
 	}
 	generator := NewFactoriesGenerator(container, g.BaseDir, params)
 	files, err := generator.Generate()

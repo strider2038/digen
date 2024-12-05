@@ -84,10 +84,6 @@ type RepositoryContainer struct {
 
 ## Known issues
 
-### Struct field is compared with nil for internal container
-
-Workaround: don't use struct by values as services or set `required` option to generate constructor.
-
 ## TODO
 
 * [x] public container generator
@@ -117,4 +113,5 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [ ] multi container config
 * [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
+* [ ] remove `SetError` method
 * [ ] write doc
