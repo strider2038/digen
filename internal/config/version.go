@@ -5,7 +5,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const Version = "v0.1"
+const Version = "v0.2"
 
 func checkVersion(configVersion string) error {
 	if configVersion == "" {
