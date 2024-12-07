@@ -79,16 +79,6 @@ func (params *GenerationParameters) wrapError(message string, errorIdentifier je
 	return jen.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
 }
 
-func (params *GenerationParameters) doWrapError(message string, errorIdentifier jen.Code) func(statement *jen.Statement) {
-	return func(statement *jen.Statement) {
-		path := params.ErrorHandling.Wrap.Package
-		funcName := params.ErrorHandling.Wrap.Function
-		verb := params.ErrorHandling.Wrap.Verb
-
-		statement.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
-	}
-}
-
 func (params *GenerationParameters) joinErrors(errs ...jen.Code) *jen.Statement {
 	path := params.ErrorHandling.Join.Package
 	funcName := params.ErrorHandling.Join.Function

@@ -1,7 +1,6 @@
 package di
 
 import (
-	"bytes"
 	"slices"
 
 	"github.com/dave/jennifer/jen"
@@ -13,9 +12,6 @@ type PublicContainerGenerator struct {
 	params    GenerationParameters
 
 	file *FileBuilder
-
-	arguments       bytes.Buffer
-	argumentSetters bytes.Buffer
 }
 
 func NewPublicContainerGenerator(

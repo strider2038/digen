@@ -101,6 +101,10 @@ func loadConfig() (*Parameters, error) {
 		}
 	}
 
+	if err := checkVersion(params.Version); err != nil {
+		return nil, errors.Errorf("check version: %w", err)
+	}
+
 	return &params, nil
 }
 
@@ -108,14 +112,4 @@ func isFileExist(filename string) bool {
 	_, err := os.Stat(filename)
 
 	return err == nil
-}
-
-func isAnyFileExists(filenames ...string) bool {
-	for _, filename := range filenames {
-		if isFileExist(filename) {
-			return true
-		}
-	}
-
-	return false
 }

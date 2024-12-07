@@ -53,7 +53,6 @@ type FileBuilder struct {
 	fileName    string
 	packageName string
 	packageType PackageType
-	body        bytes.Buffer
 }
 
 func NewFileBuilder(filename, packageName string, packageType PackageType) *FileBuilder {
