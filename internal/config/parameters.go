@@ -10,11 +10,25 @@ var errInvalidPath = errors.New("invalid path")
 type Parameters struct {
 	Version       string        `json:"version" yaml:"version"`
 	Container     Container     `json:"container" yaml:"container"`
+	Factories     Factories     `json:"factories,omitempty" yaml:"factories,omitempty"`
 	ErrorHandling ErrorHandling `json:"errorHandling,omitempty" yaml:"errorHandling,omitempty"`
 }
 
 type Container struct {
 	Dir string `json:"dir" yaml:"dir"`
+}
+
+type Factories struct {
+	ReturnError *bool `json:"returnError,omitempty" yaml:"returnError,omitempty"`
+}
+
+func (f Factories) MapToOptions() di.FactoriesParameters {
+	parameters := di.FactoriesParameters{}
+	if f.ReturnError != nil {
+		parameters.SkipError = !*f.ReturnError
+	}
+
+	return parameters
 }
 
 type ErrorHandling struct {

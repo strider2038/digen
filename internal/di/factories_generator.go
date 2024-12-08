@@ -60,6 +60,12 @@ func (g *FactoriesGenerator) generateNewFile(filename string, services []*Servic
 	file.AddImportAliases(g.container.Imports)
 
 	for _, service := range services {
+		returnCode := make([]jen.Code, 0, 2)
+		returnCode = append(returnCode, jen.Do(g.container.Type(service.Type)))
+		if g.params.Factories.ReturnError() {
+			returnCode = append(returnCode, jen.Error())
+		}
+
 		file.Add(
 			jen.Line(),
 			jen.Func().Id("Create"+strings.Title(service.Prefix)+service.Title()).
@@ -67,11 +73,10 @@ func (g *FactoriesGenerator) generateNewFile(filename string, services []*Servic
 					jen.Id("ctx").Qual("context", "Context"),
 					jen.Id("c").Qual(g.params.packageName(LookupPackage), "Container"),
 				).
-				Params(
-					jen.Do(g.container.Type(service.Type)),
-					jen.Error(),
-				).
-				Block(jen.Panic(jen.Lit("not implemented"))),
+				Params(returnCode...).
+				Block(
+					jen.Panic(jen.Lit("not implemented")),
+				),
 		)
 	}
 

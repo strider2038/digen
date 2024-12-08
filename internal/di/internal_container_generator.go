@@ -145,7 +145,7 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 	for _, service := range services {
 		block := make([]jen.Code, 0, 2)
 		if !service.IsRequired {
-			block = append(block, g.generateInitBlock(service, containerName))
+			block = append(block, g.generateInitBlock(service))
 		}
 
 		block = append(block,
@@ -162,11 +162,11 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 	}
 }
 
-func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinition, containerName string) *jen.Statement {
+func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinition) *jen.Statement {
 	serviceID := service.ID()
 	factoryName := strings.Title(service.Prefix) + service.Title()
 
-	withError := true
+	withError := g.params.Factories.ReturnError()
 	if factory, exists := g.container.Factories[factoryName]; exists {
 		withError = factory.ReturnsError
 	}

@@ -22,6 +22,7 @@ func newGenerator(options *Options, params *config.Parameters) *di.Generator {
 		Logger:  terminalLogger{},
 		Params: di.GenerationParameters{
 			Version:       options.Version,
+			Factories:     params.Factories.MapToOptions(),
 			ErrorHandling: params.ErrorHandling.MapToOptions(),
 		},
 	}

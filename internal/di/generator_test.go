@@ -16,6 +16,7 @@ import (
 func TestGenerator_Generate(t *testing.T) {
 	tests := []struct {
 		name        string
+		params      di.GenerationParameters
 		testedFiles []string
 	}{
 		{
@@ -30,6 +31,18 @@ func TestGenerator_Generate(t *testing.T) {
 		{name: "multiple containers"},
 		{name: "import alias generation"},
 		{name: "override service public name"},
+		{
+			name: "factories without errors",
+			params: di.GenerationParameters{
+				Factories: di.FactoriesParameters{
+					SkipError: true,
+				},
+			},
+			testedFiles: []string{
+				"internal/container.go",
+				"internal/factories/container.go",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -44,9 +57,7 @@ func TestGenerator_Generate(t *testing.T) {
 				BaseDir:    "di",
 				ModulePath: "example.com/test",
 				FS:         afs,
-				Params: di.GenerationParameters{
-					Version: "vX.X.X",
-				},
+				Params:     test.params,
 			}
 			err := generator.Generate()
 

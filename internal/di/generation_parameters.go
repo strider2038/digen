@@ -10,16 +10,25 @@ import (
 type GenerationParameters struct {
 	RootPackage   string
 	ErrorHandling ErrorHandling
+	Factories     FactoriesParameters
 	Version       string
 }
 
 func (params GenerationParameters) Defaults() GenerationParameters {
 	params.ErrorHandling = params.ErrorHandling.Defaults()
 	if params.Version == "" {
-		params.Version = "(unknown)"
+		params.Version = "(unknown version)"
 	}
 
 	return params
+}
+
+type FactoriesParameters struct {
+	SkipError bool
+}
+
+func (p FactoriesParameters) ReturnError() bool {
+	return !p.SkipError
 }
 
 type ErrorHandling struct {

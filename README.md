@@ -56,8 +56,7 @@ To set up quick options use tag `di` with combination of values:
 * `set` - to generate setters for internal and public containers;
 * `close` - to generate closer method call;
 * `required` - to generate argument for public container constructor;
-* `public` - to generate getter for public container;
-* `external` - no definition, panic if empty, force public setter.
+* `public` - to generate getter for public container.
 
 Example of `definitions/container.go`
 
@@ -82,7 +81,32 @@ type RepositoryContainer struct {
 }
 ```
 
-## Known issues
+## Configuration
+
+DIGEN configuration can be presented in `digen.yaml`/`digen.yml`/`digen.json` file in the project root directory.
+
+```yaml
+version: v0.2
+container:
+  # base directory with Dependency Injection Container files
+  dir: di # required
+factories:
+  # option can be used to disable return error by default
+  returnError: true
+errorHandling:
+  # options for error handling
+  # default values described below, can be omitted
+  new:
+    pkg: 'fmt'
+    func: 'Errorf'
+  join:
+    pkg: 'errors'
+    func: 'Join'
+  wrap:
+    pkg: 'fmt'
+    func: 'Errorf'
+    verb: '%w'
+```
 
 ## TODO
 
