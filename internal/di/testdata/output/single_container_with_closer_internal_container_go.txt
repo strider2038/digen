@@ -52,8 +52,9 @@ func (c *Container) Connection(ctx context.Context) sql.Connection {
 		c.connection, err = factories.CreateConnection(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create Connection: %w", err))
+		} else {
+			c.init.Set(id_Connection)
 		}
-		c.init.Set(id_Connection)
 	}
 	return c.connection
 }

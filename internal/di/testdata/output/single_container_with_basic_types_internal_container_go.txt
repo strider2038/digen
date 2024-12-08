@@ -67,8 +67,9 @@ func (c *Container) StringOption(ctx context.Context) string {
 		c.stringOption, err = factories.CreateStringOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringOption: %w", err))
+		} else {
+			c.init.Set(id_StringOption)
 		}
-		c.init.Set(id_StringOption)
 	}
 	return c.stringOption
 }
@@ -79,8 +80,9 @@ func (c *Container) StringPointer(ctx context.Context) *string {
 		c.stringPointer, err = factories.CreateStringPointer(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringPointer: %w", err))
+		} else {
+			c.init.Set(id_StringPointer)
 		}
-		c.init.Set(id_StringPointer)
 	}
 	return c.stringPointer
 }
@@ -91,8 +93,9 @@ func (c *Container) IntOption(ctx context.Context) int {
 		c.intOption, err = factories.CreateIntOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create IntOption: %w", err))
+		} else {
+			c.init.Set(id_IntOption)
 		}
-		c.init.Set(id_IntOption)
 	}
 	return c.intOption
 }
@@ -103,8 +106,9 @@ func (c *Container) TimeOption(ctx context.Context) time.Time {
 		c.timeOption, err = factories.CreateTimeOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create TimeOption: %w", err))
+		} else {
+			c.init.Set(id_TimeOption)
 		}
-		c.init.Set(id_TimeOption)
 	}
 	return c.timeOption
 }
@@ -115,8 +119,9 @@ func (c *Container) DurationOption(ctx context.Context) time.Duration {
 		c.durationOption, err = factories.CreateDurationOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create DurationOption: %w", err))
+		} else {
+			c.init.Set(id_DurationOption)
 		}
-		c.init.Set(id_DurationOption)
 	}
 	return c.durationOption
 }
@@ -127,8 +132,9 @@ func (c *Container) URLOption(ctx context.Context) url.URL {
 		c.urloption, err = factories.CreateURLOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create URLOption: %w", err))
+		} else {
+			c.init.Set(id_URLOption)
 		}
-		c.init.Set(id_URLOption)
 	}
 	return c.urloption
 }
@@ -139,8 +145,9 @@ func (c *Container) IntSlice(ctx context.Context) []int {
 		c.intSlice, err = factories.CreateIntSlice(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create IntSlice: %w", err))
+		} else {
+			c.init.Set(id_IntSlice)
 		}
-		c.init.Set(id_IntSlice)
 	}
 	return c.intSlice
 }
@@ -151,8 +158,9 @@ func (c *Container) StringMap(ctx context.Context) map[string]string {
 		c.stringMap, err = factories.CreateStringMap(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringMap: %w", err))
+		} else {
+			c.init.Set(id_StringMap)
 		}
-		c.init.Set(id_StringMap)
 	}
 	return c.stringMap
 }

@@ -52,8 +52,9 @@ func (c *Container) Router(ctx context.Context) http.Handler {
 		c.router, err = factories.CreateRouter(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create Router: %w", err))
+		} else {
+			c.init.Set(id_Router)
 		}
-		c.init.Set(id_Router)
 	}
 	return c.router
 }

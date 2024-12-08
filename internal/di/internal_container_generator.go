@@ -183,10 +183,14 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 				Op("=").
 				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
-			jen.If(jen.Id("err").Op("!=").Nil()).Block(
+			jen.If(
+				jen.Id("err").Op("!=").Nil(),
+			).Block(
 				jen.Id("c").Dot("addError").Call(
 					g.params.wrapError("create "+factoryName, jen.Id("err")),
 				),
+			).Else().Block(
+				jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
 			),
 		)
 	} else {
@@ -194,12 +198,9 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
 				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
+			jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
 		)
 	}
-
-	block = append(block,
-		jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
-	)
 
 	return jen.If(jen.Op("!").Id("c").Dot("init").Dot("IsSet").Call(jen.Id(serviceID)).
 		Op("&&").Op("c").Dot("errs").Op("==").Nil()).

@@ -67,8 +67,9 @@ func (c *Container) TopService(ctx context.Context) *domain.Service {
 		c.topService, err = factories.CreateTopService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create TopService: %w", err))
+		} else {
+			c.init.Set(id_TopService)
 		}
-		c.init.Set(id_TopService)
 	}
 	return c.topService
 }
@@ -83,8 +84,9 @@ func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Servic
 		c.firstService, err = factories.CreateInternalContainerNameFirstService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create InternalContainerNameFirstService: %w", err))
+		} else {
+			c.init.Set(id_InternalContainerName_FirstService)
 		}
-		c.init.Set(id_InternalContainerName_FirstService)
 	}
 	return c.firstService
 }
@@ -95,8 +97,9 @@ func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Servi
 		c.secondService, err = factories.CreateInternalContainerNameSecondService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create InternalContainerNameSecondService: %w", err))
+		} else {
+			c.init.Set(id_InternalContainerName_SecondService)
 		}
-		c.init.Set(id_InternalContainerName_SecondService)
 	}
 	return c.secondService
 }
