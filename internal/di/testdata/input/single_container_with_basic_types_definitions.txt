@@ -1,0 +1,17 @@
+package definitions
+
+import (
+	"time"
+	"net/url"
+)
+
+type Container struct {
+	StringOption   string            `di:"public"`
+	StringPointer  *string           `di:"public"`
+	IntOption      int               `di:"public"`
+	TimeOption     time.Time         `di:"public"`
+	DurationOption time.Duration     `di:"public"`
+	URLOption      url.URL           `di:"public"`
+	IntSlice       []int             `di:"public"`
+	StringMap      map[string]string `di:"public"`
+}

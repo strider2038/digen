@@ -56,8 +56,7 @@ To set up quick options use tag `di` with combination of values:
 * `set` - to generate setters for internal and public containers;
 * `close` - to generate closer method call;
 * `required` - to generate argument for public container constructor;
-* `public` - to generate getter for public container;
-* `external` - no definition, panic if empty, force public setter.
+* `public` - to generate getter for public container.
 
 Example of `definitions/container.go`
 
@@ -82,11 +81,32 @@ type RepositoryContainer struct {
 }
 ```
 
-## Known issues
+## Configuration
 
-### Struct field is compared with nil for internal container
+DIGEN configuration can be presented in `digen.yaml`/`digen.yml`/`digen.json` file in the project root directory.
 
-Workaround: don't use struct by values as services or set `required` option to generate constructor.
+```yaml
+version: v0.2
+container:
+  # base directory with Dependency Injection Container files
+  dir: di # required
+factories:
+  # option can be used to disable return error by default
+  returnError: true
+errorHandling:
+  # options for error handling
+  # default values described below, can be omitted
+  new:
+    pkg: 'fmt'
+    func: 'Errorf'
+  join:
+    pkg: 'errors'
+    func: 'Join'
+  wrap:
+    pkg: 'fmt'
+    func: 'Errorf'
+    verb: '%w'
+```
 
 ## TODO
 
@@ -114,7 +134,6 @@ Workaround: don't use struct by values as services or set `required` option to g
 * [ ] custom close functions
 * [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository
-* [ ] multi container config
-* [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
+* [ ] remove `SetError` method
 * [ ] write doc

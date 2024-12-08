@@ -1,0 +1,17 @@
+package definitions
+
+import (
+	"example.com/test/domain"
+)
+
+type Container struct {
+	TopService *domain.Service
+
+	InternalContainerName InternalContainerType
+}
+
+type InternalContainerType struct {
+	FirstService    *domain.Service `di:"public"`
+	SecondService   *domain.Service `di:"set,close"`
+	RequiredService *domain.Service `di:"required"`
+}

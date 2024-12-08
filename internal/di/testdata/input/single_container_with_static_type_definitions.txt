@@ -1,0 +1,9 @@
+package definitions
+
+import (
+	"example.com/test/di/config"
+)
+
+type Container struct {
+	Configuration config.Configuration `di:"required"`
+}

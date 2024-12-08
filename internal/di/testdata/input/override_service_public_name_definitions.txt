@@ -1,0 +1,9 @@
+package definitions
+
+import (
+	"net/http"
+)
+
+type Container struct {
+	Router http.Handler `di:"public" public_name:"APIRouter"`
+}

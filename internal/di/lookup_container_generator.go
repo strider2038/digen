@@ -6,14 +6,19 @@ import (
 
 type LookupContainerGenerator struct {
 	container *RootContainerDefinition
+	params    GenerationParameters
 }
 
-func NewLookupContainerGenerator(container *RootContainerDefinition) *LookupContainerGenerator {
-	return &LookupContainerGenerator{container: container}
+func NewLookupContainerGenerator(
+	container *RootContainerDefinition,
+	params GenerationParameters,
+) *LookupContainerGenerator {
+	return &LookupContainerGenerator{container: container, params: params}
 }
 
 func (g *LookupContainerGenerator) Generate() (*File, error) {
 	file := NewFileBuilder("container.go", "lookup", LookupPackage)
+	file.AddHeading(g.params.Version)
 
 	file.AddImportAliases(g.container.Imports)
 	file.Add(g.generateRootContainerInterface())
@@ -30,6 +35,7 @@ func (g *LookupContainerGenerator) generateRootContainerInterface() *jen.Stateme
 	methods := make([]jen.Code, 0, len(g.container.Services)+len(g.container.Containers)+3)
 	methods = append(methods,
 		jen.Commentf("SetError sets the first error into container. The error is used in the public container to return an initialization error."),
+		jen.Commentf("Deprecated. Return error in factory instead."),
 		jen.Id("SetError").Params(jen.Id("err").Error()),
 		jen.Line(),
 	)

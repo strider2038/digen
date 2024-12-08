@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/muonsoft/errors"
+	"github.com/spf13/afero"
 )
 
-func parseFile(filename string) (*ast.File, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
+func parseFile(fs afero.Fs, filename string) (*ast.File, error) {
+	data, err := afero.ReadFile(fs, filename)
 	if err != nil {
-		return nil, errors.Errorf("parse file %s: %w", filename, err)
+		return nil, errors.Errorf("read file %s: %w", filename, err)
 	}
-	return file, nil
+	return parseSource(string(data))
 }
 
 func parseSource(source string) (*ast.File, error) {

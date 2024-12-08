@@ -23,6 +23,7 @@ func NewInternalContainerGenerator(container *RootContainerDefinition, params Ge
 }
 
 func (g *InternalContainerGenerator) Generate() (*File, error) {
+	g.file.AddHeading(g.params.Version)
 	g.file.AddImportAliases(g.container.Imports)
 
 	g.generateRootContainer()
@@ -35,9 +36,11 @@ func (g *InternalContainerGenerator) Generate() (*File, error) {
 }
 
 func (g *InternalContainerGenerator) generateRootContainer() {
+	serviceIDs := make([]string, 0, len(g.container.Services))
+
 	fields := make([]jen.Code, 0, len(g.container.Services)+len(g.container.Containers)+3)
 	fields = append(fields,
-		jen.Id("err").Error(),
+		jen.Id("errs").Op("[]").Error(),
 		jen.Id("init").Qual("", "bitset"),
 		jen.Line(),
 	)
@@ -45,6 +48,7 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 		fields = append(fields, jen.
 			Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)),
 		)
+		serviceIDs = append(serviceIDs, service.ID())
 	}
 
 	if len(g.container.Containers) > 0 {
@@ -64,7 +68,12 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 				jen.Id("Container").Op(":").Id("c"),
 			),
 		)
+		for _, service := range container.Services {
+			serviceIDs = append(serviceIDs, service.ID())
+		}
 	}
+
+	g.addServiceIDsDeclarations(serviceIDs)
 
 	g.file.Add(jen.Type().Id("Container").Struct(fields...))
 
@@ -74,26 +83,23 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 		Block(constructorBlocks...),
 	)
 
-	g.file.Add(
-		jen.Line(),
-		jen.Commentf("Error returns the first initialization error, which can be set via SetError in a service definition."),
-		jen.Line(),
-		jen.Func().
-			Params(jen.Id("c").Op("*").Id("Container")).
-			Id("Error").Params().Error().
-			Block(jen.Return(jen.Id("c").Dot("err"))),
-		jen.Line(),
-		jen.Commentf("SetError sets the first error into container. The error is used in the public container to return an initialization error."),
-		jen.Line(),
-		jen.Func().
-			Params(jen.Id("c").Op("*").Id("Container")).
-			Id("SetError").Params(jen.Err().Error()).
-			Block(
-				jen.If(jen.Err().Op("!=").Nil().Op("&&").Id("c").Dot("err").Op("==").Nil()).Block(
-					jen.Id("c").Dot("err").Op("=").Err(),
-				),
-			),
-	)
+	g.addErrorHandlingMethods()
+}
+
+func (g *InternalContainerGenerator) addServiceIDsDeclarations(serviceIDs []string) {
+	if len(serviceIDs) == 0 {
+		return
+	}
+
+	definitions := make([]jen.Code, 0, len(serviceIDs))
+	for i, id := range serviceIDs {
+		if i == 0 {
+			definitions = append(definitions, jen.Id(id).Op("=").Iota())
+		} else {
+			definitions = append(definitions, jen.Id(id))
+		}
+	}
+	g.file.Add(jen.Const().Defs(definitions...))
 }
 
 func (g *InternalContainerGenerator) generateContainers() {
@@ -157,20 +163,10 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 }
 
 func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinition) *jen.Statement {
-	if service.IsExternal {
-		return jen.
-			If(
-				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("==").Nil().
-					Op("&&").Op("c").Dot("err").Op("==").Nil(),
-			).
-			Block(
-				jen.Panic(jen.Lit("missing " + service.Title())),
-			)
-	}
-
+	serviceID := service.ID()
 	factoryName := strings.Title(service.Prefix) + service.Title()
 
-	withError := true
+	withError := g.params.Factories.ReturnError()
 	if factory, exists := g.container.Factories[factoryName]; exists {
 		withError = factory.ReturnsError
 	}
@@ -187,10 +183,14 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 				Op("=").
 				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
-			jen.If(jen.Id("err").Op("!=").Nil()).Block(
-				jen.Id("c").Dot("SetError").Call(
+			jen.If(
+				jen.Id("err").Op("!=").Nil(),
+			).Block(
+				jen.Id("c").Dot("addError").Call(
 					g.params.wrapError("create "+factoryName, jen.Id("err")),
 				),
+			).Else().Block(
+				jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
 			),
 		)
 	} else {
@@ -198,15 +198,12 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
 				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
+			jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
 		)
 	}
 
-	block = append(block,
-		jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
-	)
-
-	return jen.If(jen.Op("!").Id("c").Dot("init").Dot("IsSet").Call(jen.Lit(service.ID)).
-		Op("&&").Op("c").Dot("err").Op("==").Nil()).
+	return jen.If(jen.Op("!").Id("c").Dot("init").Dot("IsSet").Call(jen.Id(serviceID)).
+		Op("&&").Op("c").Dot("errs").Op("==").Nil()).
 		Block(block...)
 }
 
@@ -223,14 +220,14 @@ func (g *InternalContainerGenerator) generateSetters() {
 }
 
 func (g *InternalContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) {
-	if service.HasSetter || service.IsExternal || service.IsRequired {
+	if service.HasSetter || service.IsRequired {
 		setter := jen.Func().
 			Params(jen.Id("c").Op("*").Id(containerName)).
 			Id("Set"+service.Title()).
 			Params(jen.Id("s").Do(g.container.Type(service.Type))).
 			Block(
 				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").Id("s"),
-				jen.Id("c").Dot("init").Dot("Set").Call(jen.Lit(service.ID)),
+				jen.Id("c").Dot("init").Dot("Set").Call(jen.Op(service.ID())),
 			)
 
 		g.file.Add(jen.Line(), setter)
@@ -272,7 +269,40 @@ func (g *InternalContainerGenerator) generateCloser(service *ServiceDefinition, 
 
 	return jen.
 		If(
-			jen.Id("c").Dot("init").Dot("IsSet").Call(jen.Lit(service.ID)),
+			jen.Id("c").Dot("init").Dot("IsSet").Call(jen.Op(service.ID())),
 		).
 		Block(block)
+}
+
+func (g *InternalContainerGenerator) addErrorHandlingMethods() *jen.Statement {
+	return g.file.Add(
+		jen.Line(),
+		jen.Commentf("Error returns the first initialization error, which can be set via SetError in a service definition."),
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id("Error").Params().Error().
+			Block(jen.Return(g.params.joinErrors(jen.Id("c").Dot("errs").Op("...")))),
+		jen.Line(),
+		jen.Commentf("SetError sets the first error into container. The error is used in the public container to return an initialization error."),
+		jen.Line(),
+		jen.Commentf("Deprecated. Return error in factory instead."),
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id("SetError").Params(jen.Err().Error()).
+			Block(
+				jen.Id("c").Dot("addError").Call(jen.Err()),
+			),
+		jen.Line(),
+		jen.Line(),
+		jen.Func().
+			Params(jen.Id("c").Op("*").Id("Container")).
+			Id("addError").Params(jen.Err().Error()).
+			Block(
+				jen.If(jen.Err().Op("!=").Nil()).Block(
+					jen.Id("c").Dot("errs").Op("=").Append(jen.Id("c").Dot("errs"), jen.Err()),
+				),
+			),
+	)
 }

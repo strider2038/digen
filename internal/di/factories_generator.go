@@ -3,25 +3,28 @@ package di
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/iancoleman/strcase"
+	"github.com/spf13/afero"
 )
 
 type FactoriesGenerator struct {
+	fs        afero.Fs
 	container *RootContainerDefinition
 	workDir   string
 	params    GenerationParameters
 }
 
 func NewFactoriesGenerator(
+	fs afero.Fs,
 	container *RootContainerDefinition,
 	workDir string,
 	params GenerationParameters,
 ) *FactoriesGenerator {
 	return &FactoriesGenerator{
+		fs:        fs,
 		container: container,
 		workDir:   workDir,
 		params:    params,
@@ -57,6 +60,12 @@ func (g *FactoriesGenerator) generateNewFile(filename string, services []*Servic
 	file.AddImportAliases(g.container.Imports)
 
 	for _, service := range services {
+		returnCode := make([]jen.Code, 0, 2)
+		returnCode = append(returnCode, jen.Do(g.container.Type(service.Type)))
+		if g.params.Factories.ReturnError() {
+			returnCode = append(returnCode, jen.Error())
+		}
+
 		file.Add(
 			jen.Line(),
 			jen.Func().Id("Create"+strings.Title(service.Prefix)+service.Title()).
@@ -64,11 +73,10 @@ func (g *FactoriesGenerator) generateNewFile(filename string, services []*Servic
 					jen.Id("ctx").Qual("context", "Context"),
 					jen.Id("c").Qual(g.params.packageName(LookupPackage), "Container"),
 				).
-				Params(
-					jen.Do(g.container.Type(service.Type)),
-					jen.Error(),
-				).
-				Block(jen.Panic(jen.Lit("not implemented"))),
+				Params(returnCode...).
+				Block(
+					jen.Panic(jen.Lit("not implemented")),
+				),
 		)
 	}
 
@@ -109,16 +117,14 @@ func (g *FactoriesGenerator) generateAppendFile(filename string, services []*Ser
 }
 
 func (g *FactoriesGenerator) isFactoryFileExist(filename string) bool {
-	_, err := os.Stat(g.workDir + "/" + packageDirs[FactoriesPackage] + "/" + filename)
-
-	return err == nil
+	return isFileExist(g.fs, g.workDir+"/"+packageDirs[FactoriesPackage]+"/"+filename)
 }
 
 func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinition {
 	servicesByFiles := make(map[string][]*ServiceDefinition)
 
 	for _, service := range g.container.Services {
-		if service.IsExternal || service.IsRequired {
+		if service.IsRequired {
 			continue
 		}
 		if service.FactoryFileName != "" {
@@ -133,7 +139,7 @@ func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinitio
 		filename := strcase.ToSnake(container.Name) + ".go"
 
 		for _, service := range container.Services {
-			if service.IsExternal || service.IsRequired {
+			if service.IsRequired {
 				continue
 			}
 			if service.FactoryFileName != "" {

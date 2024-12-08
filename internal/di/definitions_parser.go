@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/muonsoft/errors"
+	"github.com/spf13/afero"
 )
 
-func ParseDefinitionsFromFile(filename string) (*RootContainerDefinition, error) {
-	parser := &DefinitionsParser{}
+func ParseDefinitionsFromFile(fs afero.Fs, filename string) (*RootContainerDefinition, error) {
+	parser := &DefinitionsParser{fs: fs}
 
 	return parser.ParseFile(filename)
 }
@@ -21,11 +22,11 @@ func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
 }
 
 type DefinitionsParser struct {
-	lastID int
+	fs afero.Fs
 }
 
 func (p *DefinitionsParser) ParseFile(filename string) (*RootContainerDefinition, error) {
-	file, err := parseFile(filename)
+	file, err := parseFile(p.fs, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +165,6 @@ func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef Ty
 	tags := parseFieldTags(field)
 
 	definition := &ServiceDefinition{
-		ID:              p.nextID(),
 		Name:            name,
 		Type:            typeDef,
 		FactoryFileName: tags.FactoryFilename,
@@ -184,8 +184,6 @@ func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef Ty
 			definition.IsRequired = true
 		case "public":
 			definition.IsPublic = true
-		case "external":
-			definition.IsExternal = true
 		}
 	}
 
@@ -236,13 +234,6 @@ func (p *DefinitionsParser) parseContainerField(field *ast.Field) (*ast.StructTy
 	}
 
 	return container, nil
-}
-
-func (p *DefinitionsParser) nextID() int {
-	id := p.lastID
-	p.lastID++
-
-	return id
 }
 
 func parseFieldName(field *ast.Field) string {

@@ -1,11 +1,11 @@
 package di
 
 import (
-	"bytes"
-	"os"
+	"fmt"
 	"slices"
 
 	"github.com/muonsoft/errors"
+	"github.com/spf13/afero"
 	"golang.org/x/mod/modfile"
 )
 
@@ -15,13 +15,12 @@ const (
 )
 
 type Generator struct {
-	BaseDir       string
-	ModulePath    string
-	Logger        Logger
-	ErrorWrapping ErrorHandling
+	BaseDir    string
+	ModulePath string
+	Params     GenerationParameters
 
-	Version   string
-	BuildTime string
+	FS     afero.Fs
+	Logger Logger
 }
 
 func (g *Generator) RootPackage() string {
@@ -33,9 +32,9 @@ func (g *Generator) Initialize() error {
 		return err
 	}
 
-	file := GenerateDefinitionsContainerFile()
+	file := generateDefinitionsContainerFile()
 
-	writer := NewWriter(g.BaseDir)
+	writer := NewWriter(g.FS, g.BaseDir)
 	if err := writer.WriteFile(file); err != nil {
 		if errors.Is(err, ErrFileAlreadyExists) {
 			g.Logger.Warning("init skipped: file", file.Path(), "already exists")
@@ -56,13 +55,13 @@ func (g *Generator) Generate() error {
 		return err
 	}
 
-	container, err := ParseDefinitionsFromFile(g.BaseDir + "/" + definitionsFile)
+	container, err := ParseDefinitionsFromFile(g.FS, g.BaseDir+"/"+definitionsFile)
 	if err != nil {
 		return errors.Errorf("parse definitions file: %w", err)
 	}
 	g.Logger.Info("definitions container", definitionsFile, "successfully parsed")
 
-	factories, err := ParseFactoriesFromDir(g.BaseDir + "/" + factoriesDir)
+	factories, err := parseFactoriesFromDir(g.FS, g.BaseDir+"/"+factoriesDir)
 	if err != nil {
 		return errors.Errorf("parse factories: %w", err)
 	}
@@ -93,42 +92,41 @@ func (g *Generator) init() error {
 	if g.BaseDir == "" {
 		g.BaseDir = "."
 	}
-
-	mod, err := os.ReadFile("go.mod")
-	if err != nil {
-		return errors.Errorf("read go.mod file: %w", err)
-	}
-	path := modfile.ModulePath(mod)
-	if path == "" {
-		return errors.Wrap(errMissingModule)
+	if g.FS == nil {
+		g.FS = afero.NewOsFs()
 	}
 
-	g.ModulePath = path
+	if g.ModulePath == "" {
+		mod, err := afero.ReadFile(g.FS, "go.mod")
+		if err != nil {
+			return errors.Errorf("read go.mod file: %w", err)
+		}
+		path := modfile.ModulePath(mod)
+		if path == "" {
+			return errors.Wrap(errMissingModule)
+		}
+
+		g.ModulePath = path
+	}
 
 	if g.Logger == nil {
 		g.Logger = nilLogger{}
 	}
 
+	g.Params = g.Params.Defaults()
+	g.Params.RootPackage = g.RootPackage()
+
 	return nil
 }
 
 func (g *Generator) generateContainerFiles(container *RootContainerDefinition) error {
-	params := GenerationParameters{
-		RootPackage:   g.RootPackage(),
-		ErrorHandling: g.ErrorWrapping.Defaults(),
-	}
-
-	files, err := GenerateFiles(container, params)
+	files, err := NewFileGenerator(container, g.Params).GenerateFiles()
 	if err != nil {
 		return err
 	}
 
-	writer := NewWriter(g.BaseDir)
+	writer := NewWriter(g.FS, g.BaseDir)
 	writer.Overwrite = true
-	writer.Heading, err = g.generateHeading()
-	if err != nil {
-		return err
-	}
 
 	for _, file := range files {
 		err = writer.WriteFile(file)
@@ -142,11 +140,7 @@ func (g *Generator) generateContainerFiles(container *RootContainerDefinition) e
 }
 
 func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) error {
-	params := GenerationParameters{
-		RootPackage:   g.RootPackage(),
-		ErrorHandling: g.ErrorWrapping.Defaults(),
-	}
-	generator := NewFactoriesGenerator(container, g.BaseDir, params)
+	generator := NewFactoriesGenerator(g.FS, container, g.BaseDir, g.Params)
 	files, err := generator.Generate()
 	if err != nil {
 		return err
@@ -156,7 +150,7 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 		if file.IsEmpty() {
 			continue
 		}
-		writer := NewWriter(g.BaseDir)
+		writer := NewWriter(g.FS, g.BaseDir)
 		writer.Append = file.Append
 		err = writer.WriteFile(file)
 		if err != nil {
@@ -174,10 +168,7 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 }
 
 func (g *Generator) generateUtils() error {
-	heading, err := g.generateHeading()
-	if err != nil {
-		return err
-	}
+	heading := []byte(fmt.Sprintf(headingTemplate, g.Params.Version))
 
 	file := &File{
 		Package: InternalPackage,
@@ -185,7 +176,7 @@ func (g *Generator) generateUtils() error {
 		Content: slices.Concat(heading, []byte(bitsetSkeleton)),
 	}
 
-	writer := NewWriter(g.BaseDir)
+	writer := NewWriter(g.FS, g.BaseDir)
 	writer.Overwrite = true
 	if err := writer.WriteFile(file); err != nil {
 		return err
@@ -202,7 +193,7 @@ func (g *Generator) generateReadmeFile() error {
 		Content: []byte(readmeTemplate),
 	}
 
-	writer := NewWriter(g.BaseDir)
+	writer := NewWriter(g.FS, g.BaseDir)
 	writer.Overwrite = true
 	if err := writer.WriteFile(file); err != nil {
 		return err
@@ -211,14 +202,4 @@ func (g *Generator) generateReadmeFile() error {
 	g.Logger.Info("readme file", file.Path(), "generated")
 
 	return nil
-}
-
-func (g *Generator) generateHeading() ([]byte, error) {
-	var heading bytes.Buffer
-	err := headingTemplate.Execute(&heading, g)
-	if err != nil {
-		return nil, errors.Errorf("generate heading: %w", err)
-	}
-
-	return heading.Bytes(), nil
 }

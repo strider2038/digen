@@ -18,15 +18,12 @@ func runGenerate(options *Options) error {
 
 func newGenerator(options *Options, params *config.Parameters) *di.Generator {
 	return &di.Generator{
-		BaseDir:   params.Container.Dir,
-		Version:   options.Version,
-		BuildTime: options.BuildTime,
-		Logger:    terminalLogger{},
-		ErrorWrapping: di.ErrorHandling{
-			Package:      params.ErrorHandling.Package,
-			WrapPackage:  params.ErrorHandling.WrapPackage,
-			WrapFunction: params.ErrorHandling.WrapFunction,
-			Verb:         params.ErrorHandling.Verb,
+		BaseDir: params.Container.Dir,
+		Logger:  terminalLogger{},
+		Params: di.GenerationParameters{
+			Version:       options.Version,
+			Factories:     params.Factories.MapToOptions(),
+			ErrorHandling: params.ErrorHandling.MapToOptions(),
 		},
 	}
 }

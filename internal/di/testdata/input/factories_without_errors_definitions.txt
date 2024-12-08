@@ -1,0 +1,9 @@
+package definitions
+
+import (
+	"example.com/test/domain"
+)
+
+type Container struct {
+	ServiceName *domain.Service `di:"public"`
+}
