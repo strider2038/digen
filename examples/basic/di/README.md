@@ -25,8 +25,7 @@ To set up service definition options use tags:
 * `set` - to generate setters for internal and public containers;
 * `close` - to generate closer method call;
 * `required` - to generate argument for public container constructor;
-* `public` - to generate getter for public container;
-* `external` - no definition, panic if empty, force public setter.
+* `public` - to generate getter for public container.
 
 ## Links
 

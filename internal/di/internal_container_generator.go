@@ -48,7 +48,7 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 		fields = append(fields, jen.
 			Id(strcase.ToLowerCamel(service.Name)).Do(g.container.Type(service.Type)),
 		)
-		serviceIDs = append(serviceIDs, "id_"+service.Title())
+		serviceIDs = append(serviceIDs, service.ID())
 	}
 
 	if len(g.container.Containers) > 0 {
@@ -69,7 +69,7 @@ func (g *InternalContainerGenerator) generateRootContainer() {
 			),
 		)
 		for _, service := range container.Services {
-			serviceIDs = append(serviceIDs, "id_"+container.Title()+"_"+service.Title())
+			serviceIDs = append(serviceIDs, service.ID())
 		}
 	}
 
