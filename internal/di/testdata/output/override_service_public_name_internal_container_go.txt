@@ -11,6 +11,10 @@ import (
 	"net/http"
 )
 
+const (
+	id_Router = iota
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -43,13 +47,13 @@ func (c *Container) addError(err error) {
 }
 
 func (c *Container) Router(ctx context.Context) http.Handler {
-	if !c.init.IsSet(0) && c.errs == nil {
+	if !c.init.IsSet(id_Router) && c.errs == nil {
 		var err error
 		c.router, err = factories.CreateRouter(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create Router: %w", err))
 		}
-		c.init.Set(0)
+		c.init.Set(id_Router)
 	}
 	return c.router
 }

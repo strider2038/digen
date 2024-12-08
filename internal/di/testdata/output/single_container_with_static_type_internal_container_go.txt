@@ -9,6 +9,10 @@ import (
 	config "example.com/test/di/config"
 )
 
+const (
+	id_Configuration = iota
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -46,7 +50,7 @@ func (c *Container) Configuration(ctx context.Context) config.Configuration {
 
 func (c *Container) SetConfiguration(s config.Configuration) {
 	c.configuration = s
-	c.init.Set(0)
+	c.init.Set(id_Configuration)
 }
 
 func (c *Container) Close() {}

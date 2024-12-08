@@ -9,6 +9,10 @@ import (
 	domain "example.com/test/domain"
 )
 
+const (
+	id_ServiceName = iota
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -46,7 +50,7 @@ func (c *Container) ServiceName(ctx context.Context) *domain.Service {
 
 func (c *Container) SetServiceName(s *domain.Service) {
 	c.serviceName = s
-	c.init.Set(0)
+	c.init.Set(id_ServiceName)
 }
 
 func (c *Container) Close() {}

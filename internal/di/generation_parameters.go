@@ -13,6 +13,15 @@ type GenerationParameters struct {
 	Version       string
 }
 
+func (params GenerationParameters) Defaults() GenerationParameters {
+	params.ErrorHandling = params.ErrorHandling.Defaults()
+	if params.Version == "" {
+		params.Version = "(unknown)"
+	}
+
+	return params
+}
+
 type ErrorHandling struct {
 	New  ErrorOptions
 	Join ErrorOptions
@@ -51,7 +60,7 @@ func (w ErrorHandling) Defaults() ErrorHandling {
 	return w
 }
 
-func (params *GenerationParameters) rootPackageName() string {
+func (params GenerationParameters) rootPackageName() string {
 	path := strings.Split(params.RootPackage, "/")
 	if len(path) == 0 {
 		return ""
@@ -59,11 +68,11 @@ func (params *GenerationParameters) rootPackageName() string {
 	return path[len(path)-1]
 }
 
-func (params *GenerationParameters) packageName(packageType PackageType) string {
+func (params GenerationParameters) packageName(packageType PackageType) string {
 	return strings.Trim(strconv.Quote(params.RootPackage+"/"+packageDirs[packageType]), `"`)
 }
 
-func (params *GenerationParameters) wrapError(message string, errorIdentifier jen.Code) *jen.Statement {
+func (params GenerationParameters) wrapError(message string, errorIdentifier jen.Code) *jen.Statement {
 	path := params.ErrorHandling.Wrap.Package
 	funcName := params.ErrorHandling.Wrap.Function
 	verb := params.ErrorHandling.Wrap.Verb
@@ -71,7 +80,7 @@ func (params *GenerationParameters) wrapError(message string, errorIdentifier je
 	return jen.Qual(path, funcName).Call(jen.Lit(message+": "+verb), errorIdentifier)
 }
 
-func (params *GenerationParameters) joinErrors(errs ...jen.Code) *jen.Statement {
+func (params GenerationParameters) joinErrors(errs ...jen.Code) *jen.Statement {
 	path := params.ErrorHandling.Join.Package
 	funcName := params.ErrorHandling.Join.Function
 

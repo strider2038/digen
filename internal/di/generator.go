@@ -15,16 +15,12 @@ const (
 )
 
 type Generator struct {
-	BaseDir       string
-	ModulePath    string
-	ErrorHandling ErrorHandling
+	BaseDir    string
+	ModulePath string
+	Params     GenerationParameters
 
 	FS     afero.Fs
 	Logger Logger
-
-	Version string
-
-	params GenerationParameters
 }
 
 func (g *Generator) RootPackage() string {
@@ -117,15 +113,14 @@ func (g *Generator) init() error {
 		g.Logger = nilLogger{}
 	}
 
-	g.params.RootPackage = g.RootPackage()
-	g.params.ErrorHandling = g.ErrorHandling.Defaults()
-	g.params.Version = g.Version
+	g.Params = g.Params.Defaults()
+	g.Params.RootPackage = g.RootPackage()
 
 	return nil
 }
 
 func (g *Generator) generateContainerFiles(container *RootContainerDefinition) error {
-	files, err := NewFileGenerator(container, g.params).GenerateFiles()
+	files, err := NewFileGenerator(container, g.Params).GenerateFiles()
 	if err != nil {
 		return err
 	}
@@ -145,7 +140,7 @@ func (g *Generator) generateContainerFiles(container *RootContainerDefinition) e
 }
 
 func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) error {
-	generator := NewFactoriesGenerator(g.FS, container, g.BaseDir, g.params)
+	generator := NewFactoriesGenerator(g.FS, container, g.BaseDir, g.Params)
 	files, err := generator.Generate()
 	if err != nil {
 		return err
@@ -173,7 +168,7 @@ func (g *Generator) generateFactoriesFiles(container *RootContainerDefinition) e
 }
 
 func (g *Generator) generateUtils() error {
-	heading := []byte(fmt.Sprintf(headingTemplate, g.Version))
+	heading := []byte(fmt.Sprintf(headingTemplate, g.Params.Version))
 
 	file := &File{
 		Package: InternalPackage,

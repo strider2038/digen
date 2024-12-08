@@ -12,6 +12,17 @@ import (
 	"time"
 )
 
+const (
+	id_StringOption = iota
+	id_StringPointer
+	id_IntOption
+	id_TimeOption
+	id_DurationOption
+	id_URLOption
+	id_IntSlice
+	id_StringMap
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -51,97 +62,97 @@ func (c *Container) addError(err error) {
 }
 
 func (c *Container) StringOption(ctx context.Context) string {
-	if !c.init.IsSet(0) && c.errs == nil {
+	if !c.init.IsSet(id_StringOption) && c.errs == nil {
 		var err error
 		c.stringOption, err = factories.CreateStringOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringOption: %w", err))
 		}
-		c.init.Set(0)
+		c.init.Set(id_StringOption)
 	}
 	return c.stringOption
 }
 
 func (c *Container) StringPointer(ctx context.Context) *string {
-	if !c.init.IsSet(1) && c.errs == nil {
+	if !c.init.IsSet(id_StringPointer) && c.errs == nil {
 		var err error
 		c.stringPointer, err = factories.CreateStringPointer(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringPointer: %w", err))
 		}
-		c.init.Set(1)
+		c.init.Set(id_StringPointer)
 	}
 	return c.stringPointer
 }
 
 func (c *Container) IntOption(ctx context.Context) int {
-	if !c.init.IsSet(2) && c.errs == nil {
+	if !c.init.IsSet(id_IntOption) && c.errs == nil {
 		var err error
 		c.intOption, err = factories.CreateIntOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create IntOption: %w", err))
 		}
-		c.init.Set(2)
+		c.init.Set(id_IntOption)
 	}
 	return c.intOption
 }
 
 func (c *Container) TimeOption(ctx context.Context) time.Time {
-	if !c.init.IsSet(3) && c.errs == nil {
+	if !c.init.IsSet(id_TimeOption) && c.errs == nil {
 		var err error
 		c.timeOption, err = factories.CreateTimeOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create TimeOption: %w", err))
 		}
-		c.init.Set(3)
+		c.init.Set(id_TimeOption)
 	}
 	return c.timeOption
 }
 
 func (c *Container) DurationOption(ctx context.Context) time.Duration {
-	if !c.init.IsSet(4) && c.errs == nil {
+	if !c.init.IsSet(id_DurationOption) && c.errs == nil {
 		var err error
 		c.durationOption, err = factories.CreateDurationOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create DurationOption: %w", err))
 		}
-		c.init.Set(4)
+		c.init.Set(id_DurationOption)
 	}
 	return c.durationOption
 }
 
 func (c *Container) URLOption(ctx context.Context) url.URL {
-	if !c.init.IsSet(5) && c.errs == nil {
+	if !c.init.IsSet(id_URLOption) && c.errs == nil {
 		var err error
 		c.urloption, err = factories.CreateURLOption(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create URLOption: %w", err))
 		}
-		c.init.Set(5)
+		c.init.Set(id_URLOption)
 	}
 	return c.urloption
 }
 
 func (c *Container) IntSlice(ctx context.Context) []int {
-	if !c.init.IsSet(6) && c.errs == nil {
+	if !c.init.IsSet(id_IntSlice) && c.errs == nil {
 		var err error
 		c.intSlice, err = factories.CreateIntSlice(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create IntSlice: %w", err))
 		}
-		c.init.Set(6)
+		c.init.Set(id_IntSlice)
 	}
 	return c.intSlice
 }
 
 func (c *Container) StringMap(ctx context.Context) map[string]string {
-	if !c.init.IsSet(7) && c.errs == nil {
+	if !c.init.IsSet(id_StringMap) && c.errs == nil {
 		var err error
 		c.stringMap, err = factories.CreateStringMap(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create StringMap: %w", err))
 		}
-		c.init.Set(7)
+		c.init.Set(id_StringMap)
 	}
 	return c.stringMap
 }

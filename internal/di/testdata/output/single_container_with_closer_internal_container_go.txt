@@ -11,6 +11,10 @@ import (
 	"fmt"
 )
 
+const (
+	id_Connection = iota
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -43,19 +47,19 @@ func (c *Container) addError(err error) {
 }
 
 func (c *Container) Connection(ctx context.Context) sql.Connection {
-	if !c.init.IsSet(0) && c.errs == nil {
+	if !c.init.IsSet(id_Connection) && c.errs == nil {
 		var err error
 		c.connection, err = factories.CreateConnection(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create Connection: %w", err))
 		}
-		c.init.Set(0)
+		c.init.Set(id_Connection)
 	}
 	return c.connection
 }
 
 func (c *Container) Close() {
-	if c.init.IsSet(0) {
+	if c.init.IsSet(id_Connection) {
 		c.connection.Close()
 	}
 }

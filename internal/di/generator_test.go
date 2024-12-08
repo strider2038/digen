@@ -44,7 +44,9 @@ func TestGenerator_Generate(t *testing.T) {
 				BaseDir:    "di",
 				ModulePath: "example.com/test",
 				FS:         afs,
-				Version:    "vX.X.X",
+				Params: di.GenerationParameters{
+					Version: "vX.X.X",
+				},
 			}
 			err := generator.Generate()
 

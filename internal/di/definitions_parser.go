@@ -22,8 +22,7 @@ func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
 }
 
 type DefinitionsParser struct {
-	fs     afero.Fs
-	lastID int
+	fs afero.Fs
 }
 
 func (p *DefinitionsParser) ParseFile(filename string) (*RootContainerDefinition, error) {
@@ -166,7 +165,6 @@ func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef Ty
 	tags := parseFieldTags(field)
 
 	definition := &ServiceDefinition{
-		ID:              p.nextID(),
 		Name:            name,
 		Type:            typeDef,
 		FactoryFileName: tags.FactoryFilename,
@@ -236,13 +234,6 @@ func (p *DefinitionsParser) parseContainerField(field *ast.Field) (*ast.StructTy
 	}
 
 	return container, nil
-}
-
-func (p *DefinitionsParser) nextID() int {
-	id := p.lastID
-	p.lastID++
-
-	return id
 }
 
 func parseFieldName(field *ast.Field) string {

@@ -12,6 +12,13 @@ import (
 	"fmt"
 )
 
+const (
+	id_TopService = iota
+	id_InternalContainerName_FirstService
+	id_InternalContainerName_SecondService
+	id_InternalContainerName_RequiredService
+)
+
 type Container struct {
 	errs []error
 	init bitset
@@ -55,13 +62,13 @@ type InternalContainerType struct {
 }
 
 func (c *Container) TopService(ctx context.Context) *domain.Service {
-	if !c.init.IsSet(0) && c.errs == nil {
+	if !c.init.IsSet(id_TopService) && c.errs == nil {
 		var err error
 		c.topService, err = factories.CreateTopService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create TopService: %w", err))
 		}
-		c.init.Set(0)
+		c.init.Set(id_TopService)
 	}
 	return c.topService
 }
@@ -71,25 +78,25 @@ func (c *Container) InternalContainerName() lookup.InternalContainerType {
 }
 
 func (c *InternalContainerType) FirstService(ctx context.Context) *domain.Service {
-	if !c.init.IsSet(1) && c.errs == nil {
+	if !c.init.IsSet(id_InternalContainerName_FirstService) && c.errs == nil {
 		var err error
 		c.firstService, err = factories.CreateInternalContainerNameFirstService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create InternalContainerNameFirstService: %w", err))
 		}
-		c.init.Set(1)
+		c.init.Set(id_InternalContainerName_FirstService)
 	}
 	return c.firstService
 }
 
 func (c *InternalContainerType) SecondService(ctx context.Context) *domain.Service {
-	if !c.init.IsSet(2) && c.errs == nil {
+	if !c.init.IsSet(id_InternalContainerName_SecondService) && c.errs == nil {
 		var err error
 		c.secondService, err = factories.CreateInternalContainerNameSecondService(ctx, c)
 		if err != nil {
 			c.addError(fmt.Errorf("create InternalContainerNameSecondService: %w", err))
 		}
-		c.init.Set(2)
+		c.init.Set(id_InternalContainerName_SecondService)
 	}
 	return c.secondService
 }
@@ -100,16 +107,16 @@ func (c *InternalContainerType) RequiredService(ctx context.Context) *domain.Ser
 
 func (c *InternalContainerType) SetSecondService(s *domain.Service) {
 	c.secondService = s
-	c.init.Set(2)
+	c.init.Set(id_InternalContainerName_SecondService)
 }
 
 func (c *InternalContainerType) SetRequiredService(s *domain.Service) {
 	c.requiredService = s
-	c.init.Set(3)
+	c.init.Set(id_InternalContainerName_RequiredService)
 }
 
 func (c *Container) Close() {
-	if c.init.IsSet(2) {
+	if c.init.IsSet(id_InternalContainerName_SecondService) {
 		c.internalContainerName.secondService.Close()
 	}
 }
