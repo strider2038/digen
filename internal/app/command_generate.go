@@ -20,7 +20,6 @@ func newGenerator(options *Options, params *config.Parameters) *di.Generator {
 	return &di.Generator{
 		BaseDir:       params.Container.Dir,
 		Version:       options.Version,
-		BuildTime:     options.BuildTime,
 		Logger:        terminalLogger{},
 		ErrorHandling: params.ErrorHandling.MapToOptions(),
 	}

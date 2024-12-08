@@ -28,6 +28,7 @@ func NewPublicContainerGenerator(
 }
 
 func (g *PublicContainerGenerator) Generate() (*File, error) {
+	g.file.AddHeading(g.params.Version)
 	g.file.AddImportAliases(g.container.Imports)
 
 	g.file.Add(

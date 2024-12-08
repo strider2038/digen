@@ -6,14 +6,19 @@ import (
 
 type LookupContainerGenerator struct {
 	container *RootContainerDefinition
+	params    GenerationParameters
 }
 
-func NewLookupContainerGenerator(container *RootContainerDefinition) *LookupContainerGenerator {
-	return &LookupContainerGenerator{container: container}
+func NewLookupContainerGenerator(
+	container *RootContainerDefinition,
+	params GenerationParameters,
+) *LookupContainerGenerator {
+	return &LookupContainerGenerator{container: container, params: params}
 }
 
 func (g *LookupContainerGenerator) Generate() (*File, error) {
 	file := NewFileBuilder("container.go", "lookup", LookupPackage)
+	file.AddHeading(g.params.Version)
 
 	file.AddImportAliases(g.container.Imports)
 	file.Add(g.generateRootContainerInterface())

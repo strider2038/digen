@@ -1,0 +1,9 @@
+package definitions
+
+import (
+	httpadapter "example.com/test/infrastructure/api/http"
+)
+
+type Container struct {
+	ServiceName *httpadapter.ServiceHandler `di:"public"`
+}

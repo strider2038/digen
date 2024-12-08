@@ -110,8 +110,6 @@ type RepositoryContainer struct {
 * [ ] custom close functions
 * [ ] describe basic app example
 * [ ] add complex app example with tests and fake repository
-* [ ] multi container config
-* [ ] parse from multiple definition files (may encounter potential conflicts for imports)
 * [ ] definitions updater
 * [ ] remove `SetError` method
 * [ ] write doc

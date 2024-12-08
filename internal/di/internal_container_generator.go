@@ -23,6 +23,7 @@ func NewInternalContainerGenerator(container *RootContainerDefinition, params Ge
 }
 
 func (g *InternalContainerGenerator) Generate() (*File, error) {
+	g.file.AddHeading(g.params.Version)
 	g.file.AddImportAliases(g.container.Imports)
 
 	g.generateRootContainer()
@@ -138,17 +139,6 @@ func (g *InternalContainerGenerator) writeServiceGetters(services []*ServiceDefi
 }
 
 func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinition) *jen.Statement {
-	if service.IsExternal {
-		return jen.
-			If(
-				jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("==").Nil().
-					Op("&&").Op("c").Dot("errs").Op("==").Nil(),
-			).
-			Block(
-				jen.Panic(jen.Lit("missing " + service.Title())),
-			)
-	}
-
 	factoryName := strings.Title(service.Prefix) + service.Title()
 
 	withError := true
@@ -204,7 +194,7 @@ func (g *InternalContainerGenerator) generateSetters() {
 }
 
 func (g *InternalContainerGenerator) generateSetter(containerName string, service *ServiceDefinition) {
-	if service.HasSetter || service.IsExternal || service.IsRequired {
+	if service.HasSetter || service.IsRequired {
 		setter := jen.Func().
 			Params(jen.Id("c").Op("*").Id(containerName)).
 			Id("Set"+service.Title()).

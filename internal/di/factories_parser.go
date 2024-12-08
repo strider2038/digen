@@ -2,20 +2,20 @@ package di
 
 import (
 	"go/ast"
-	"io/fs"
-	"path/filepath"
+	iofs "io/fs"
 	"strings"
 
 	"github.com/muonsoft/errors"
+	"github.com/spf13/afero"
 )
 
-func ParseFactoriesFromDir(dir string) (*FactoryDefinitions, error) {
+func parseFactoriesFromDir(fs afero.Fs, dir string) (*FactoryDefinitions, error) {
 	definitions := NewFactoryDefinitions()
-	if !isFileExist(dir) {
+	if !isFileExist(fs, dir) {
 		return definitions, nil
 	}
 
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err := afero.Walk(fs, dir, func(path string, d iofs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -25,7 +25,7 @@ func ParseFactoriesFromDir(dir string) (*FactoryDefinitions, error) {
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
-		file, err := parseFile(path)
+		file, err := parseFile(fs, path)
 		if err != nil {
 			return err
 		}

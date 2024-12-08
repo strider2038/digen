@@ -1,0 +1,9 @@
+package definitions
+
+import (
+	"example.com/test/sql"
+)
+
+type Container struct {
+	Connection sql.Connection `di:"close"`
+}

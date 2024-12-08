@@ -3,25 +3,28 @@ package di
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/iancoleman/strcase"
+	"github.com/spf13/afero"
 )
 
 type FactoriesGenerator struct {
+	fs        afero.Fs
 	container *RootContainerDefinition
 	workDir   string
 	params    GenerationParameters
 }
 
 func NewFactoriesGenerator(
+	fs afero.Fs,
 	container *RootContainerDefinition,
 	workDir string,
 	params GenerationParameters,
 ) *FactoriesGenerator {
 	return &FactoriesGenerator{
+		fs:        fs,
 		container: container,
 		workDir:   workDir,
 		params:    params,
@@ -109,16 +112,14 @@ func (g *FactoriesGenerator) generateAppendFile(filename string, services []*Ser
 }
 
 func (g *FactoriesGenerator) isFactoryFileExist(filename string) bool {
-	_, err := os.Stat(g.workDir + "/" + packageDirs[FactoriesPackage] + "/" + filename)
-
-	return err == nil
+	return isFileExist(g.fs, g.workDir+"/"+packageDirs[FactoriesPackage]+"/"+filename)
 }
 
 func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinition {
 	servicesByFiles := make(map[string][]*ServiceDefinition)
 
 	for _, service := range g.container.Services {
-		if service.IsExternal || service.IsRequired {
+		if service.IsRequired {
 			continue
 		}
 		if service.FactoryFileName != "" {
@@ -133,7 +134,7 @@ func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinitio
 		filename := strcase.ToSnake(container.Name) + ".go"
 
 		for _, service := range container.Services {
-			if service.IsExternal || service.IsRequired {
+			if service.IsRequired {
 				continue
 			}
 			if service.FactoryFileName != "" {

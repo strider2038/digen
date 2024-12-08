@@ -5,17 +5,18 @@ import (
 	"path/filepath"
 
 	"github.com/muonsoft/errors"
+	"github.com/spf13/afero"
 )
 
 type Writer struct {
+	FS        afero.Fs
 	WorkDir   string
 	Overwrite bool
 	Append    bool
-	Heading   []byte
 }
 
-func NewWriter(workDir string) *Writer {
-	return &Writer{WorkDir: workDir}
+func NewWriter(fs afero.Fs, workDir string) *Writer {
+	return &Writer{FS: fs, WorkDir: workDir}
 }
 
 func (w *Writer) WriteFile(file *File) error {
@@ -25,7 +26,7 @@ func (w *Writer) WriteFile(file *File) error {
 	}
 	filename += file.Name
 
-	if isFileExist(filename) {
+	if isFileExist(w.FS, filename) {
 		if w.Append {
 			return w.append(file, filename)
 		}
@@ -39,12 +40,12 @@ func (w *Writer) WriteFile(file *File) error {
 
 func (w *Writer) write(file *File, filename string) error {
 	dir := filepath.Dir(filename)
-	err := os.MkdirAll(dir, 0775)
+	err := w.FS.MkdirAll(dir, 0775)
 	if err != nil {
 		return errors.Errorf("create dir %s: %w", dir, err)
 	}
 
-	err = os.WriteFile(filename, append(w.Heading, file.Content...), 0644)
+	err = afero.WriteFile(w.FS, filename, file.Content, 0644)
 	if err != nil {
 		return errors.Errorf("write file %s: %w", file.Name, err)
 	}
@@ -53,17 +54,17 @@ func (w *Writer) write(file *File, filename string) error {
 }
 
 func (w *Writer) append(file *File, filename string) error {
-	return appendFile(filename, file.Content, 0644)
+	return appendFile(w.FS, filename, file.Content, 0644)
 }
 
-func isFileExist(filename string) bool {
-	_, err := os.Stat(filename)
+func isFileExist(fs afero.Fs, filename string) bool {
+	_, err := fs.Stat(filename)
 
 	return err == nil
 }
 
-func appendFile(name string, data []byte, perm os.FileMode) error {
-	f, err := os.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
+func appendFile(fs afero.Fs, name string, data []byte, perm os.FileMode) error {
+	f, err := fs.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
 	if err != nil {
 		return err
 	}
