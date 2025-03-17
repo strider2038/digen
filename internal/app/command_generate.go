@@ -30,6 +30,10 @@ func newGenerator(options *Options, params *config.Parameters) *di.Generator {
 
 type terminalLogger struct{}
 
+func (log terminalLogger) Debug(a ...any) {
+	pterm.Debug.Println(a...)
+}
+
 func (log terminalLogger) Info(a ...interface{}) {
 	pterm.Info.Println(a...)
 }

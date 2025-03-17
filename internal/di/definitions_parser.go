@@ -2,27 +2,19 @@ package di
 
 import (
 	"go/ast"
-	"reflect"
 	"strings"
 
 	"github.com/muonsoft/errors"
 	"github.com/spf13/afero"
 )
 
-func ParseDefinitionsFromFile(fs afero.Fs, filename string) (*RootContainerDefinition, error) {
-	parser := &DefinitionsParser{fs: fs}
-
-	return parser.ParseFile(filename)
-}
-
-func ParseContainerFromSource(source string) (*RootContainerDefinition, error) {
-	parser := &DefinitionsParser{}
-
-	return parser.ParseSource(source)
-}
-
 type DefinitionsParser struct {
-	fs afero.Fs
+	fs     afero.Fs
+	logger Logger
+}
+
+func NewDefinitionsParser(fs afero.Fs, logger Logger) *DefinitionsParser {
+	return &DefinitionsParser{fs: fs, logger: logger}
 }
 
 func (p *DefinitionsParser) ParseFile(filename string) (*RootContainerDefinition, error) {
@@ -162,20 +154,21 @@ func (p *DefinitionsParser) createContainerDefinition(field *ast.Field) (*Contai
 
 func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef TypeDefinition) *ServiceDefinition {
 	name := parseFieldName(field)
-	tags := parseFieldTags(field)
+	options := OptionsParser{Logger: p.logger}.ParseServiceDefinitionOptions(field)
 
 	definition := &ServiceDefinition{
 		Name:            name,
 		Type:            typeDef,
-		FactoryFileName: tags.FactoryFilename,
-		PublicName:      tags.PublicName,
+		FactoryPackage:  options.FactoryPackage,
+		FactoryFileName: options.FactoryFilename,
+		PublicName:      options.PublicName,
 	}
 	if definition.FactoryFileName != "" {
 		definition.FactoryFileName += ".go"
 	}
 
-	for _, option := range tags.Options {
-		switch option {
+	for _, flag := range options.Flags {
+		switch flag {
 		case "set":
 			definition.HasSetter = true
 		case "close":
@@ -184,6 +177,8 @@ func (p *DefinitionsParser) createServiceDefinition(field *ast.Field, typeDef Ty
 			definition.IsRequired = true
 		case "public":
 			definition.IsPublic = true
+		default:
+			p.logger.Warning("unknown service definition option:", flag)
 		}
 	}
 
@@ -304,26 +299,6 @@ func parseTypeDefinition(expr ast.Expr) (TypeDefinition, error) {
 	}
 
 	return TypeDefinition{}, errors.Errorf("%w: %s", ErrUnexpectedType, "parse type")
-}
-
-type Tags struct {
-	Options         []string
-	FactoryFilename string
-	PublicName      string
-}
-
-func parseFieldTags(field *ast.Field) Tags {
-	if field.Tag == nil || len(field.Tag.Value) == 0 {
-		return Tags{}
-	}
-
-	tag := reflect.StructTag(field.Tag.Value[1 : len(field.Tag.Value)-1])
-
-	return Tags{
-		Options:         strings.Split(tag.Get("di"), ","),
-		FactoryFilename: tag.Get("factory_file"),
-		PublicName:      tag.Get("public_name"),
-	}
 }
 
 func validateInternalContainer(container *ast.StructType) error {

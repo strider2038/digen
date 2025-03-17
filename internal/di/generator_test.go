@@ -21,7 +21,7 @@ func TestGenerator_Generate(t *testing.T) {
 	}{
 		{
 			name:        "single container with getters only",
-			testedFiles: append(defaultTestedFiles(), "internal/factories/container.go"),
+			testedFiles: append(defaultTestedFiles(), "di/internal/factories/container.go"),
 		},
 		{name: "single container with service setter"},
 		{name: "single container with required service"},
@@ -39,8 +39,16 @@ func TestGenerator_Generate(t *testing.T) {
 				},
 			},
 			testedFiles: []string{
-				"internal/container.go",
-				"internal/factories/container.go",
+				"di/internal/container.go",
+				"di/internal/factories/container.go",
+			},
+		},
+		{
+			name: "outer factories",
+			testedFiles: []string{
+				"di/internal/container.go",
+				"di/internal/factories/container.go",
+				"pkg/outer_factories/container.go",
 			},
 		},
 	}
@@ -72,9 +80,9 @@ func TestGenerator_Generate(t *testing.T) {
 
 func defaultTestedFiles() []string {
 	return []string{
-		"container.go",
-		"internal/container.go",
-		"internal/lookup/container.go",
+		"di/container.go",
+		"di/internal/container.go",
+		"di/lookup/container.go",
 	}
 }
 
@@ -88,7 +96,7 @@ func setupDefinitionsFile(t *testing.T, fs afero.Fs, testCase string) {
 
 func assertGeneratedFiles(t *testing.T, afs afero.Fs, testCase string, testedFiles []string) {
 	for _, filename := range testedFiles {
-		got, err := afero.ReadFile(afs, "di/"+filename)
+		got, err := afero.ReadFile(afs, filename)
 		require.NoError(t, err, "read generated file %q", filename)
 		want, err := os.ReadFile("./testdata/output/" + formatOutputFilename(testCase, filename) + ".txt")
 		require.NoError(t, err, "read expected file %q", filename)
@@ -104,7 +112,7 @@ func needToDump() bool {
 
 func dumpGeneratedFiles(t *testing.T, afs afero.Fs, testCase string, testedFiles []string) {
 	for _, filename := range testedFiles {
-		data, err := afero.ReadFile(afs, "di/"+filename)
+		data, err := afero.ReadFile(afs, filename)
 		require.NoError(t, err, "read generated file %q", filename)
 		err = os.WriteFile("./testdata/output/"+formatOutputFilename(testCase, filename)+".txt", data, 0644)
 		require.NoError(t, err, "write generated file %q", filename)

@@ -5,19 +5,25 @@ import (
 )
 
 type LookupContainerGenerator struct {
-	container *RootContainerDefinition
-	params    GenerationParameters
+	fileLocator FileLocator
+	container   *RootContainerDefinition
+	params      GenerationParameters
 }
 
 func NewLookupContainerGenerator(
+	fileLocator FileLocator,
 	container *RootContainerDefinition,
 	params GenerationParameters,
 ) *LookupContainerGenerator {
-	return &LookupContainerGenerator{container: container, params: params}
+	return &LookupContainerGenerator{
+		fileLocator: fileLocator,
+		container:   container,
+		params:      params,
+	}
 }
 
 func (g *LookupContainerGenerator) Generate() (*File, error) {
-	file := NewFileBuilder("container.go", "lookup", LookupPackage)
+	file := NewFileBuilder(g.fileLocator.GetPackageFilePath(LookupPackage, "container.go"), "lookup")
 	file.AddHeading(g.params.Version)
 
 	file.AddImportAliases(g.container.Imports)

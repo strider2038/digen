@@ -25,23 +25,13 @@ var packageDirs = [lastPackage]string{
 	InternalPackage:    "internal",
 	DefinitionsPackage: "internal/definitions",
 	FactoriesPackage:   "internal/factories",
-	LookupPackage:      "internal/lookup",
+	LookupPackage:      "lookup",
 }
 
 type File struct {
-	Package PackageType
 	Name    string
 	Content []byte
 	Append  bool
-}
-
-func (f *File) Path() string {
-	path := packageDirs[f.Package]
-	if path != "" {
-		path += "/"
-	}
-
-	return path + f.Name
 }
 
 func (f *File) IsEmpty() bool {
@@ -52,15 +42,13 @@ type FileBuilder struct {
 	file        *jen.File
 	fileName    string
 	packageName string
-	packageType PackageType
 }
 
-func NewFileBuilder(filename, packageName string, packageType PackageType) *FileBuilder {
+func NewFileBuilder(filename, packageName string) *FileBuilder {
 	return &FileBuilder{
 		file:        jen.NewFile(packageName),
 		fileName:    filename,
 		packageName: packageName,
-		packageType: packageType,
 	}
 }
 
@@ -95,7 +83,6 @@ func (b *FileBuilder) GetFile() (*File, error) {
 	}
 
 	return &File{
-		Package: b.packageType,
 		Name:    b.fileName,
 		Content: content,
 	}, nil

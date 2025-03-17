@@ -10,32 +10,25 @@ import (
 
 type Writer struct {
 	FS        afero.Fs
-	WorkDir   string
 	Overwrite bool
 	Append    bool
 }
 
-func NewWriter(fs afero.Fs, workDir string) *Writer {
-	return &Writer{FS: fs, WorkDir: workDir}
+func NewWriter(fs afero.Fs) *Writer {
+	return &Writer{FS: fs}
 }
 
 func (w *Writer) WriteFile(file *File) error {
-	filename := w.WorkDir + "/"
-	if packageDirs[file.Package] != "" {
-		filename += packageDirs[file.Package] + "/"
-	}
-	filename += file.Name
-
-	if isFileExist(w.FS, filename) {
+	if isFileExist(w.FS, file.Name) {
 		if w.Append {
-			return w.append(file, filename)
+			return w.append(file, file.Name)
 		}
 		if !w.Overwrite {
-			return errors.Errorf("cannot write to file %s: %w", filename, ErrFileAlreadyExists)
+			return errors.Errorf("cannot write to file %s: %w", file.Name, ErrFileAlreadyExists)
 		}
 	}
 
-	return w.write(file, filename)
+	return w.write(file, file.Name)
 }
 
 func (w *Writer) write(file *File, filename string) error {

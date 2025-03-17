@@ -4,26 +4,21 @@ import (
 	"github.com/muonsoft/errors"
 )
 
-func generateDefinitionsContainerFile() *File {
-	return &File{
-		Package: DefinitionsPackage,
-		Name:    "container.go",
-		Content: []byte(definitionsContainerFileSkeleton),
-	}
-}
-
 type FileGenerator struct {
-	container *RootContainerDefinition
-	params    GenerationParameters
+	fileLocator FileLocator
+	container   *RootContainerDefinition
+	params      GenerationParameters
 }
 
 func NewFileGenerator(
+	fileLocator FileLocator,
 	container *RootContainerDefinition,
 	params GenerationParameters,
 ) *FileGenerator {
 	return &FileGenerator{
-		container: container,
-		params:    params,
+		fileLocator: fileLocator,
+		container:   container,
+		params:      params,
 	}
 }
 
@@ -31,9 +26,9 @@ func (g *FileGenerator) GenerateFiles() ([]*File, error) {
 	files := make([]*File, 0)
 
 	generators := [...]func() (*File, error){
-		NewInternalContainerGenerator(g.container, g.params).Generate,
-		NewLookupContainerGenerator(g.container, g.params).Generate,
-		NewPublicContainerGenerator(g.container, g.params).Generate,
+		NewInternalContainerGenerator(g.fileLocator, g.container, g.params).Generate,
+		NewLookupContainerGenerator(g.fileLocator, g.container, g.params).Generate,
+		NewPublicContainerGenerator(g.fileLocator, g.container, g.params).Generate,
 	}
 
 	for _, generate := range generators {
