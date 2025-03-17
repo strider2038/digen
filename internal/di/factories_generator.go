@@ -92,6 +92,12 @@ func (g *FactoriesGenerator) generateAppendFile(filename string, services []*Ser
 			continue
 		}
 
+		returnCode := make([]jen.Code, 0, 2)
+		returnCode = append(returnCode, jen.Do(g.container.Type(service.Type)))
+		if g.params.Factories.ReturnError() {
+			returnCode = append(returnCode, jen.Error())
+		}
+
 		content.WriteString("\n")
 		content.WriteString(fmt.Sprintf("%#v",
 			jen.Func().Id("Create"+factoryName).
@@ -99,10 +105,7 @@ func (g *FactoriesGenerator) generateAppendFile(filename string, services []*Ser
 					jen.Id("ctx").Qual("context", "Context"),
 					jen.Id("c").Qual(g.params.packageName(LookupPackage), "Container"),
 				).
-				Params(
-					jen.Do(g.container.Type(service.Type)),
-					jen.Error(),
-				).
+				Params(returnCode...).
 				Block(jen.Panic(jen.Lit("not implemented"))),
 		))
 		content.WriteString("\n")
