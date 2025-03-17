@@ -1,6 +1,9 @@
 package app
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Options struct {
 	Version   string
@@ -12,7 +15,7 @@ type OptionFunc func(options *Options)
 
 func SetVersion(version string) OptionFunc {
 	return func(options *Options) {
-		options.Version = version
+		options.Version = strings.TrimPrefix(version, "v")
 	}
 }
 
