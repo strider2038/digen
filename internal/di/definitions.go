@@ -68,6 +68,7 @@ type ServiceDefinition struct {
 	Type   TypeDefinition
 
 	PublicName      string // "public_name" tag
+	FactoryPackage  string // "factory_pkg" tag
 	FactoryFileName string // "factory_file" tag
 
 	// options from tag "di"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"basic/di/internal/lookup"
+	"basic/di/lookup"
 )
 
 func CreateServer(ctx context.Context, c lookup.Container) *http.Server {

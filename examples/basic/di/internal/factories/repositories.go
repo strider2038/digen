@@ -5,7 +5,7 @@ import (
 
 	"basic/app/db"
 	"basic/app/domain"
-	"basic/di/internal/lookup"
+	"basic/di/lookup"
 )
 
 func CreateRepositoriesEntityRepository(ctx context.Context, c lookup.Container) domain.EntityRepository {

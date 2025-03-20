@@ -11,23 +11,23 @@ import (
 )
 
 type FactoriesGenerator struct {
-	fs        afero.Fs
-	container *RootContainerDefinition
-	workDir   string
-	params    GenerationParameters
+	fs          afero.Fs
+	fileLocator FileLocator
+	container   *RootContainerDefinition
+	params      GenerationParameters
 }
 
 func NewFactoriesGenerator(
 	fs afero.Fs,
+	fileLocator FileLocator,
 	container *RootContainerDefinition,
-	workDir string,
 	params GenerationParameters,
 ) *FactoriesGenerator {
 	return &FactoriesGenerator{
-		fs:        fs,
-		container: container,
-		workDir:   workDir,
-		params:    params,
+		fs:          fs,
+		fileLocator: fileLocator,
+		container:   container,
+		params:      params,
 	}
 }
 
@@ -40,7 +40,7 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 		var file *File
 		var err error
 
-		if g.isFactoryFileExist(filename) {
+		if isFileExist(g.fs, filename) {
 			file, err = g.generateAppendFile(filename, services)
 		} else {
 			file, err = g.generateNewFile(filename, services)
@@ -56,7 +56,7 @@ func (g *FactoriesGenerator) Generate() ([]*File, error) {
 }
 
 func (g *FactoriesGenerator) generateNewFile(filename string, services []*ServiceDefinition) (*File, error) {
-	file := NewFileBuilder(filename, "factories", FactoriesPackage)
+	file := NewFileBuilder(filename, "factories")
 	file.AddImportAliases(g.container.Imports)
 
 	for _, service := range services {
@@ -112,15 +112,10 @@ func (g *FactoriesGenerator) generateAppendFile(filename string, services []*Ser
 	}
 
 	return &File{
-		Package: FactoriesPackage,
 		Name:    filename,
 		Content: content.Bytes(),
 		Append:  true,
 	}, nil
-}
-
-func (g *FactoriesGenerator) isFactoryFileExist(filename string) bool {
-	return isFileExist(g.fs, g.workDir+"/"+packageDirs[FactoriesPackage]+"/"+filename)
 }
 
 func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinition {
@@ -130,26 +125,20 @@ func (g *FactoriesGenerator) getServicesByFiles() map[string][]*ServiceDefinitio
 		if service.IsRequired {
 			continue
 		}
-		if service.FactoryFileName != "" {
-			servicesByFiles[service.FactoryFileName] = append(servicesByFiles[service.FactoryFileName], service)
-			continue
-		}
 
-		servicesByFiles["container.go"] = append(servicesByFiles["container.go"], service)
+		filename := g.fileLocator.GetFactoryFilePath(service, "container.go")
+		servicesByFiles[filename] = append(servicesByFiles[filename], service)
 	}
 
 	for _, container := range g.container.Containers {
-		filename := strcase.ToSnake(container.Name) + ".go"
+		defaultFilename := strcase.ToSnake(container.Name) + ".go"
 
 		for _, service := range container.Services {
 			if service.IsRequired {
 				continue
 			}
-			if service.FactoryFileName != "" {
-				servicesByFiles[service.FactoryFileName] = append(servicesByFiles[service.FactoryFileName], service)
-				continue
-			}
 
+			filename := g.fileLocator.GetFactoryFilePath(service, defaultFilename)
 			servicesByFiles[filename] = append(servicesByFiles[filename], service)
 		}
 	}

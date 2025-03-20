@@ -2,7 +2,7 @@ package factories
 
 import (
 	"context"
-	lookup "example.com/test/di/internal/lookup"
+	lookup "example.com/test/di/lookup"
 	domain "example.com/test/domain"
 )
 

@@ -1,0 +1,12 @@
+package definitions
+
+import (
+	"example.com/test/domain"
+)
+
+type Container struct {
+	InnerService *domain.Service
+
+	// di: factory_pkg: example.com/test/pkg/outer_factories
+	OuterService *domain.Service
+}

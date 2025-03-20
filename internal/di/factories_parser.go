@@ -9,36 +9,41 @@ import (
 	"github.com/spf13/afero"
 )
 
-func parseFactoriesFromDir(fs afero.Fs, dir string) (*FactoryDefinitions, error) {
+func parseFactoriesFromDirs(fs afero.Fs, logger Logger, dirs ...string) (*FactoryDefinitions, error) {
 	definitions := NewFactoryDefinitions()
-	if !isFileExist(fs, dir) {
-		return definitions, nil
-	}
 
-	err := afero.Walk(fs, dir, func(path string, d iofs.FileInfo, err error) error {
-		if err != nil {
-			return err
+	for _, dir := range dirs {
+		if !isFileExist(fs, dir) {
+			continue
 		}
-		if d.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-		file, err := parseFile(fs, path)
-		if err != nil {
-			return err
-		}
-		df, err := parseFactoriesAST(file)
-		if err != nil {
-			return err
-		}
-		definitions.merge(df)
 
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Errorf("walk dir %q: %w", dir, err)
+		err := afero.Walk(fs, dir, func(path string, d iofs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !strings.HasSuffix(path, ".go") {
+				return nil
+			}
+			file, err := parseFile(fs, path)
+			if err != nil {
+				return err
+			}
+			df, err := parseFactoriesAST(file)
+			if err != nil {
+				return err
+			}
+			definitions.merge(df)
+
+			return nil
+		})
+		if err != nil {
+			return nil, errors.Errorf("walk dir %q: %w", dir, err)
+		}
+
+		logger.Info("factories parsed from dir:", dir)
 	}
 
 	return definitions, nil

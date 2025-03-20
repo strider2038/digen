@@ -39,32 +39,31 @@ After any update run `digen generate` command to generate container and factorie
     * `container.go` - generated internal di container
     * `definitions` - package with container and service definitions (configuration file)
       * `container.go` - structs describing di containers (describe here your services)
-    * `lookup` - directory with lookup container contracts
-      * `container.go` - generated interfaces for internal di container (to use in factories package)
     * `factories` - package with manually written factory functions to build up services
+  * `lookup` - directory with lookup container contracts
+    * `container.go` - generated interfaces for internal di container (to use in factories package)
 
 ### Service definition options
 
-To set up service definition use tags:
+There are two ways to set up service definition options: by tags and by comments.
+When both are present, options by tags will override options by comments (flags will be merged).
 
-* tag `di` for quick options;
+* tag `di` for flag options:
+  * `set` - to generate setters for internal and public containers;
+  * `close` - to generate closer method call;
+  * `required` - to generate argument for public container constructor;
+  * `public` - to generate getter for public container.
+* tag `factory_pkg` to set up factory package;
 * tag `factory_name` to set up factory filename (without extension);
 * tag `public_name` to override service getter for public container.
 
-To set up quick options use tag `di` with combination of values:
-
-* `set` - to generate setters for internal and public containers;
-* `close` - to generate closer method call;
-* `required` - to generate argument for public container constructor;
-* `public` - to generate getter for public container.
-
-Example of `definitions/container.go`
+Example of `definitions/container.go` using tags.
 
 ```golang
 type Container struct {
     Configuration config.Configuration `di:"required"`
     Logger        *log.Logger          `di:"required"`
-    Conn          *sql.Conn            `di:"external,close"`
+    Conn          *sql.Conn            `di:"set,close"`
 
     Handler *httpadapter.GetEntityHandler `di:"public"`
 
@@ -78,6 +77,36 @@ type UseCaseContainer struct {
 
 type RepositoryContainer struct {
     EntityRepository domain.EntityRepository `di:"set"`
+}
+```
+
+Example of `definitions/container.go` using comments.
+
+```golang
+type Container struct {
+    // di: required
+    Configuration config.Configuration
+    // di: required
+    Logger *log.Logger
+    // di: set,close
+    Conn *sql.Conn
+
+    // di: public
+    // di: factory_pkg: example.com/test/infrastructure/api/http
+    // di: factory_name: handler
+    Handler *httpadapter.GetEntityHandler
+
+    UseCases     UseCaseContainer
+    Repositories RepositoryContainer
+}
+
+type UseCaseContainer struct {
+    FindEntity *usecase.FindEntity
+}
+
+type RepositoryContainer struct {
+    // di: set
+    EntityRepository domain.EntityRepository
 }
 ```
 

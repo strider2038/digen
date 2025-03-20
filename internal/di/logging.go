@@ -1,13 +1,15 @@
 package di
 
 type Logger interface {
-	Info(a ...interface{})
-	Success(a ...interface{})
-	Warning(a ...interface{})
+	Debug(a ...any)
+	Info(a ...any)
+	Success(a ...any)
+	Warning(a ...any)
 }
 
 type nilLogger struct{}
 
-func (log nilLogger) Info(a ...interface{})    {}
-func (log nilLogger) Success(a ...interface{}) {}
-func (log nilLogger) Warning(a ...interface{}) {}
+func (log nilLogger) Debug(a ...any)   {}
+func (log nilLogger) Info(a ...any)    {}
+func (log nilLogger) Success(a ...any) {}
+func (log nilLogger) Warning(a ...any) {}

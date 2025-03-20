@@ -14,11 +14,18 @@ type InternalContainerGenerator struct {
 	file *FileBuilder
 }
 
-func NewInternalContainerGenerator(container *RootContainerDefinition, params GenerationParameters) *InternalContainerGenerator {
+func NewInternalContainerGenerator(
+	fileLocator FileLocator,
+	container *RootContainerDefinition,
+	params GenerationParameters,
+) *InternalContainerGenerator {
 	return &InternalContainerGenerator{
 		container: container,
 		params:    params,
-		file:      NewFileBuilder("container.go", "internal", InternalPackage),
+		file: NewFileBuilder(
+			fileLocator.GetPackageFilePath(InternalPackage, "container.go"),
+			"internal",
+		),
 	}
 }
 
@@ -171,6 +178,11 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 		withError = factory.ReturnsError
 	}
 
+	factoriesPackage := g.params.packageName(FactoriesPackage)
+	if service.FactoryPackage != "" {
+		factoriesPackage = service.FactoryPackage
+	}
+
 	block := make([]jen.Code, 0, 2)
 	if withError {
 		block = append(block,
@@ -181,7 +193,7 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 					jen.Id("err"),
 				).
 				Op("=").
-				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
+				Qual(factoriesPackage, "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
 			jen.If(
 				jen.Id("err").Op("!=").Nil(),
@@ -196,7 +208,7 @@ func (g *InternalContainerGenerator) generateInitBlock(service *ServiceDefinitio
 	} else {
 		block = append(block,
 			jen.Id("c").Dot(strcase.ToLowerCamel(service.Name)).Op("=").
-				Qual(g.params.packageName(FactoriesPackage), "Create"+factoryName).
+				Qual(factoriesPackage, "Create"+factoryName).
 				Call(jen.Id("ctx"), jen.Id("c")),
 			jen.Id("c").Dot("init").Dot("Set").Call(jen.Id(serviceID)),
 		)

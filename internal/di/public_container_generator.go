@@ -8,17 +8,19 @@ import (
 )
 
 type PublicContainerGenerator struct {
-	container *RootContainerDefinition
-	params    GenerationParameters
+	fileLocator FileLocator
+	container   *RootContainerDefinition
+	params      GenerationParameters
 
 	file *FileBuilder
 }
 
 func NewPublicContainerGenerator(
+	fileLocator FileLocator,
 	container *RootContainerDefinition,
 	params GenerationParameters,
 ) *PublicContainerGenerator {
-	file := NewFileBuilder("container.go", params.rootPackageName(), PublicPackage)
+	file := NewFileBuilder(fileLocator.GetPackageFilePath(PublicPackage, "container.go"), params.rootPackageName())
 
 	return &PublicContainerGenerator{
 		container: container,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"basic/di/internal/lookup"
+	"basic/di/lookup"
 )
 
 func CreateParamsServerPort(ctx context.Context, c lookup.Container) int {

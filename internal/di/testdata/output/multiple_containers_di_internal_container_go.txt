@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	factories "example.com/test/di/internal/factories"
-	lookup "example.com/test/di/internal/lookup"
+	lookup "example.com/test/di/lookup"
 	domain "example.com/test/domain"
 	"fmt"
 )
