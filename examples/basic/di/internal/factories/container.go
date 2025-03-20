@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"basic/di/internal/lookup"
+	"basic/di/lookup"
 )
 
 func CreateLogger(ctx context.Context, c lookup.Container) *log.Logger {

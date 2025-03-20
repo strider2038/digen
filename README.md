@@ -39,9 +39,9 @@ After any update run `digen generate` command to generate container and factorie
     * `container.go` - generated internal di container
     * `definitions` - package with container and service definitions (configuration file)
       * `container.go` - structs describing di containers (describe here your services)
-    * `lookup` - directory with lookup container contracts
-      * `container.go` - generated interfaces for internal di container (to use in factories package)
     * `factories` - package with manually written factory functions to build up services
+  * `lookup` - directory with lookup container contracts
+    * `container.go` - generated interfaces for internal di container (to use in factories package)
 
 ### Service definition options
 

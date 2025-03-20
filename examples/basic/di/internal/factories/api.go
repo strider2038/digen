@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"basic/app/httphandler"
-	"basic/di/internal/lookup"
+	"basic/di/lookup"
 )
 
 func CreateAPIFindEntityHandler(ctx context.Context, c lookup.Container) *httphandler.FindEntity {
